@@ -1,3 +1,9 @@
+# shellcheck disable=all
+# ^ Paver in edx-platform is on the way out
+#   (https://github.com/openedx/edx-platform/issues/31798)
+#   so we're not going to bother fixing these shellcheck
+#   violations.
+
 # Courtesy of Gregory Nicholas
 
 _subcommand_opts()
@@ -13,7 +19,7 @@ BEGIN {
 
 {
     for (i = 1; i <= NF; i = i + 1) {
-        # Match short options (-a, -S, -3)
+        # Match short options (-a, -S, -3:)
         # or long options (--long-option, --another_option)
         # in output from paver help [subcommand]
         if ($i ~ /^(-[A-Za-z0-9]|--[A-Za-z][A-Za-z0-9_-]*)/) {
