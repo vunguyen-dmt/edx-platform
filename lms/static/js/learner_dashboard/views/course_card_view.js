@@ -86,6 +86,8 @@ class CourseCardView extends Backbone.View {
       this.upgradeMessage = new UpgradeMessageView({
         $el: $upgradeMessage,
         model: this.model,
+        // TODO: get from api,
+        is_eligible_for_subscription: true,
       });
 
       $certStatus.remove();

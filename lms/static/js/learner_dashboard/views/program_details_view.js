@@ -10,6 +10,7 @@ import CourseCardView from './course_card_view';
 import HeaderView from './program_header_view';
 import SidebarView from './program_details_sidebar_view';
 
+import restartIcon from '../../../images/restart-icon.svg';
 import pageTpl from '../../../templates/learner_dashboard/program_details_view.underscore';
 import tabPageTpl from '../../../templates/learner_dashboard/program_details_tab_view.underscore';
 import trackECommerceEvents from '../../commerce/track_ecommerce_events';
@@ -84,7 +85,16 @@ class ProgramDetailsView extends Backbone.View {
       creditPathways: this.options.creditPathways,
       discussionFragment: this.options.discussionFragment,
       live_fragment: this.options.live_fragment,
-
+      restartIcon: restartIcon,
+      // TODO: get from api
+      is_eligible_for_subscription: true,
+      is_subscribed: true,
+      trial_length: 7,
+      subscription_state: 'active',
+      subscription_price: '$39',
+      subscription_start_date: '14th July 2023',
+      trial_end_date: '14th July 2023',
+      trial_end_time: '3:54 pm',
     };
     data = $.extend(data, this.programModel.toJSON());
     HtmlUtils.setHtml(this.$el, this.tpl(data));

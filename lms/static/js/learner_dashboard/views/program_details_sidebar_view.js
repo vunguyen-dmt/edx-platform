@@ -8,6 +8,7 @@ import StringUtils from 'edx-ui-toolkit/js/utils/string-utils';
 import CertificateView from './certificate_list_view';
 import ProgramProgressView from './progress_circle_view';
 
+import arrowUprightIcon from '../../../images/arrow-upright-icon.svg';
 import sidebarTpl from '../../../templates/learner_dashboard/program_details_sidebar.underscore';
 
 class ProgramDetailsSidebarView extends Backbone.View {
@@ -29,7 +30,7 @@ class ProgramDetailsSidebarView extends Backbone.View {
     this.industryPathways = options.industryPathways;
     this.creditPathways = options.creditPathways;
     this.programModel = options.model;
-    this.programTabViewEnabled =  options.programTabViewEnabled;
+    this.programTabViewEnabled = options.programTabViewEnabled;
     this.render();
   }
 
@@ -40,7 +41,13 @@ class ProgramDetailsSidebarView extends Backbone.View {
       programRecordUrl: this.programRecordUrl,
       industryPathways: this.industryPathways,
       creditPathways: this.creditPathways,
-      programTabViewEnabled: this.programTabViewEnabled
+      programTabViewEnabled: this.programTabViewEnabled,
+      arrowUprightIcon: arrowUprightIcon,
+      // TODO: get from api
+      is_eligible_for_subscription: true,
+      subscription_support_mail: 'support-subscription@edx.org',
+      subscription_state: 'active',
+      subscription_price: '$39',
     });
 
     HtmlUtils.setHtml(this.$el, this.tpl(data));
