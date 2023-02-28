@@ -13,7 +13,7 @@ from django.db.models import QuerySet
 from django.test import TestCase
 from django.test.utils import override_settings
 from django.utils import timezone
-from oauth2_provider.models import AccessToken, RefreshToken
+from oauth2_provider.models import AccessToken, RefreshToken, Grant
 from testfixtures import LogCapture
 
 from openedx.core.djangoapps.oauth_dispatch.tests import factories
@@ -66,17 +66,17 @@ class EdxClearExpiredTokensTests(TestCase):  # lint-amnesty, pylint: disable=mis
                 (
                     LOGGER_NAME,
                     'INFO',
-                    f'Cleaning {0} rows from {RefreshToken.__name__} table'
+                    f'Cleaned {0} rows from {RefreshToken.__name__} table'
                 ),
                 (
                     LOGGER_NAME,
                     'INFO',
-                    f'Cleaning {0} rows from {AccessToken.__name__} table',
+                    f'Cleaned {0} rows from {AccessToken.__name__} table',
                 ),
                 (
                     LOGGER_NAME,
                     'INFO',
-                    'Cleaning 0 rows from Grant table',
+                    f'Cleaned 0 rows from {Grant.__name__} table',
                 )
             )
         assert RefreshToken.objects.filter(application=application).exists()
