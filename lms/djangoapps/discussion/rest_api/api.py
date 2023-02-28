@@ -1421,6 +1421,7 @@ def create_thread(request, thread_data):
         detail.
     """
     course_id = thread_data.get("course_id")
+    in_context_sidebar_content = thread_data.pop("enable_in_context_sidebar", False)
     user = request.user
     if not course_id:
         raise ValidationError({"course_id": ["This field is required."]})
@@ -1452,7 +1453,8 @@ def create_thread(request, thread_data):
     api_thread = serializer.data
     _do_extra_actions(api_thread, cc_thread, list(thread_data.keys()), actions_form, context, request)
 
-    track_thread_created_event(request, course, cc_thread, actions_form.cleaned_data["following"])
+    track_thread_created_event(request, course, cc_thread, actions_form.cleaned_data["following"],
+                               in_context_sidebar_content)
 
     return api_thread
 
