@@ -16,7 +16,7 @@ from django.utils.deprecation import MiddlewareMixin
 from opaque_keys.edx.keys import CourseKey, UsageKey, i4xEncoder
 from pytz import UTC
 
-from common.djangoapps.student.models import get_user_by_username_or_email
+from common.djangoapps.student.models import get_user_by_username_or_email, UserProfile
 from common.djangoapps.student.roles import GlobalStaff
 from lms.djangoapps.courseware.access import has_access
 from lms.djangoapps.discussion.django_comment_client.constants import TYPE_ENTRY, TYPE_SUBCATEGORY
@@ -777,7 +777,7 @@ def prepare_content(
         'read', 'group_id', 'group_name', 'pinned', 'abuse_flaggers',
         'stats', 'resp_skip', 'resp_limit', 'resp_total', 'thread_type',
         'endorsed_responses', 'non_endorsed_responses', 'non_endorsed_resp_total',
-        'endorsement', 'context', 'last_activity_at', 'username', 'user_id'
+        'endorsement', 'context', 'last_activity_at', 'username', 'user_id', 'name'
     ]
 
     is_anonymous = content.get('anonymous')
@@ -785,9 +785,14 @@ def prepare_content(
     # is_staff is true for both staff and TAs, is_user_staff will be true for staff members only
     is_user_staff = is_staff and not is_community_ta
 
+    current_user_id = content["user_id"]
+    profile_user = UserProfile.objects.get(user_id=current_user_id)
+    content["name"] = profile_user.name
+
     if is_anonymous or (is_anonymous_to_peers and not is_user_staff):
         fields.remove('username')
         fields.remove('user_id')
+        fields.remove('name')
 
     content = strip_none(extract(content, fields))
 
@@ -801,6 +806,7 @@ def prepare_content(
         if endorsement["user_id"]:
             try:
                 endorser = User.objects.get(pk=endorsement["user_id"])
+                endorsement["name"] = UserProfile.objects.get(user=endorser).name
             except User.DoesNotExist:
                 log.error(
                     "User ID %s in endorsement for comment %s but not in our DB.",
@@ -814,6 +820,7 @@ def prepare_content(
                 ("username" in fields or has_permission(endorser, "endorse_comment", course_key))
         ):
             endorsement["username"] = endorser.username
+            endorsement["name"] = UserProfile.objects.get(user=endorser).name
         else:
             del endorsement["user_id"]
 

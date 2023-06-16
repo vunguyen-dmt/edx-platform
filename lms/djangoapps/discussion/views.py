@@ -650,10 +650,11 @@ def user_profile(request, course_key, user_id):
                 'annotated_content_info': context['annotated_content_info'],
             })
         else:
+            django_user = User.objects.get(id = user_id)
             discussions_mfe_enabled = ENABLE_DISCUSSIONS_MFE.is_enabled(course_key)
             if discussions_mfe_enabled:
                 mfe_base_url = settings.DISCUSSIONS_MICROFRONTEND_URL
-                return redirect(f"{mfe_base_url}/{str(course_key)}/learners")
+                return redirect(f"{mfe_base_url}/{str(course_key)}/learners/{str(django_user.username)}/posts")
 
             tab_view = CourseTabView()
 

@@ -7,6 +7,7 @@ Serializers for Enhanced Staff Grader (ESG)
 from rest_framework import serializers
 
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
+from common.djangoapps.student.models import get_user_by_username_or_email, UserProfile
 
 
 class GradeStatusField(serializers.ChoiceField):
@@ -138,6 +139,7 @@ class SubmissionMetadataSerializer(serializers.Serializer):
 
     submissionUUID = serializers.CharField(source="submissionUuid")
     username = serializers.CharField(allow_null=True)
+    name = serializers.SerializerMethodField()
     teamName = serializers.CharField(allow_null=True)
     dateSubmitted = serializers.DateTimeField()
     dateGraded = serializers.DateTimeField(allow_null=True)
@@ -150,6 +152,7 @@ class SubmissionMetadataSerializer(serializers.Serializer):
         fields = [
             "submissionUUID",
             "username",
+            "name",
             "teamName",
             "dateSubmitted",
             "dateGraded",
@@ -159,6 +162,12 @@ class SubmissionMetadataSerializer(serializers.Serializer):
             "score",
         ]
         read_only_fields = fields
+
+    def get_name(self, obj):
+        matched_username = obj["username"]
+        user = get_user_by_username_or_email(matched_username)
+        profile = UserProfile.objects.get(user=user)
+        return profile.name
 
 
 class InitializeSerializer(serializers.Serializer):
