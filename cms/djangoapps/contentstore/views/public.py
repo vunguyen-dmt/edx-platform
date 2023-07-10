@@ -66,7 +66,7 @@ def howitworks(request):
     if request.user.is_authenticated:
         return redirect('/home/')
     else:
-        return render_to_response('howitworks.html', {})
+        return login_redirect_to_lms(request)
 
 
 def accessibility(request):
