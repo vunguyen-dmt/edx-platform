@@ -543,7 +543,13 @@
 </script>
 <script aria-hidden="true" type="text/template" id="post-user-display-template">
 <% if (username) { %>
-<a href="<%- user_url %>" class="username"><%- username %></a>
+<a href="<%- user_url %>" class="username">
+        <% if (name!=null) { %>
+            <%- name %> (<%- username %>)
+        <% } else { %>
+            <%- username %>
+        <% } %>
+    </a>
     <% if (is_community_ta) { %>
     <span class="user-label-community-ta"><%- gettext("(Community TA)") %></span>
     <% } else if (is_staff) { %>
