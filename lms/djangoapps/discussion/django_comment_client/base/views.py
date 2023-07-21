@@ -22,6 +22,7 @@ import openedx.core.djangoapps.django_comment_common.comment_client as cc
 from common.djangoapps.student.roles import GlobalStaff
 from common.djangoapps.util.file import store_uploaded_file
 from common.djangoapps.track import contexts
+from common.djangoapps.student.models import UserProfile
 from lms.djangoapps.courseware.access import has_access
 from lms.djangoapps.courseware.courses import get_course_overview_with_access, get_course_with_access
 from lms.djangoapps.courseware.exceptions import CourseAccessRedirect
@@ -1077,12 +1078,14 @@ def users(request, course_id):
     try:
         matched_user = User.objects.get(username=username)
         cc_user = cc.User.from_django_user(matched_user)
+        profile = UserProfile.objects.get(user=matched_user)
         cc_user.course_id = course_key
         cc_user.retrieve(complete=False)
         if (cc_user['threads_count'] + cc_user['comments_count']) > 0:
             user_objs.append({
                 'id': matched_user.id,
                 'username': matched_user.username,
+                'name': profile.name
             })
     except User.DoesNotExist:
         pass
