@@ -57,8 +57,9 @@ def send_ace_message(goal):
 
     goals_unsubscribe_url = f'{settings.LEARNING_MICROFRONTEND_URL}/goal-unsubscribe/{goal.unsubscribe_token}'
 
-    language = get_user_preference(user, LANGUAGE_KEY)
-
+    #language = get_user_preference(user, LANGUAGE_KEY)
+    language = 'vi'
+    
     # Code to allow displaying different banner images for different languages
     # However, we'll likely want to develop a better way to do this within edx-ace
     image_url = settings.STATIC_URL
