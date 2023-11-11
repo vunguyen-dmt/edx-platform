@@ -165,6 +165,8 @@ class SubmissionMetadataSerializer(serializers.Serializer):
 
     def get_name(self, obj):
         matched_username = obj["username"]
+        if matched_username is None or matched_username == "":
+            return ""
         user = get_user_by_username_or_email(matched_username)
         profile = UserProfile.objects.get(user=user)
         return profile.name
