@@ -85,7 +85,7 @@ class ContentLibraryTransformer(FilteringTransformerMixin, BlockStructureTransfo
                 selected = []
                 mode = block_structure.get_xblock_field(block_key, 'mode')
                 max_count = block_structure.get_xblock_field(block_key, 'max_count')
-                if max_count < 0:
+                if max_count < 0 or usage_info.has_staff_access.to_json().get('has_access'):
                     max_count = len(library_children)
 
                 # Retrieve "selected" json from LMS MySQL database.
