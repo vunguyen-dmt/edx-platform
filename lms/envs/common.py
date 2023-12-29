@@ -4181,6 +4181,7 @@ ACCOUNT_VISIBILITY_CONFIGURATION = {
         'account_privacy',
         'profile_image',
         'username',
+        'name',
     ],
 }
 
@@ -4201,16 +4202,16 @@ ACCOUNT_VISIBILITY_CONFIGURATION["bulk_shareable_fields"] = (
     ]
 )
 
-# The list of all fields that can be shared selectively with other users using the 'custom' privacy setting
-ACCOUNT_VISIBILITY_CONFIGURATION["custom_shareable_fields"] = (
-    ACCOUNT_VISIBILITY_CONFIGURATION["bulk_shareable_fields"] + [
-        "name",
-    ]
-)
+# # The list of all fields that can be shared selectively with other users using the 'custom' privacy setting
+# ACCOUNT_VISIBILITY_CONFIGURATION["custom_shareable_fields"] = (
+#     ACCOUNT_VISIBILITY_CONFIGURATION["bulk_shareable_fields"] + [
+#         "name",
+#     ]
+# )
 
 # The list of account fields that are visible only to staff and users viewing their own profiles
 ACCOUNT_VISIBILITY_CONFIGURATION["admin_fields"] = (
-    ACCOUNT_VISIBILITY_CONFIGURATION["custom_shareable_fields"] + [
+    ACCOUNT_VISIBILITY_CONFIGURATION["bulk_shareable_fields"] + [
         "email",
         "id",
         "verified_name",

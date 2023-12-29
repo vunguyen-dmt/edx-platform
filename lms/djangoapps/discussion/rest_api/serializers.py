@@ -12,7 +12,7 @@ from django.urls import reverse
 from django.utils.html import strip_tags
 from rest_framework import serializers
 
-from common.djangoapps.student.models import get_user_by_username_or_email
+from common.djangoapps.student.models import get_user_by_username_or_email, UserProfile
 from common.djangoapps.student.roles import GlobalStaff
 from lms.djangoapps.discussion.django_comment_client.base.views import track_thread_lock_unlock_event, \
     track_thread_edited_event, track_comment_edited_event, track_forum_response_mark_event
@@ -142,6 +142,7 @@ class _ContentSerializer(serializers.Serializer):
     """
     id = serializers.CharField(read_only=True)  # pylint: disable=invalid-name
     author = serializers.SerializerMethodField()
+    author_name = serializers.SerializerMethodField()
     author_label = serializers.SerializerMethodField()
     created_at = serializers.CharField(read_only=True)
     updated_at = serializers.CharField(read_only=True)
@@ -198,6 +199,14 @@ class _ContentSerializer(serializers.Serializer):
         Returns the author's username, or None if the content is anonymous.
         """
         return None if self._is_anonymous(obj) else obj["username"]
+
+    def get_author_name(self, obj):
+        """
+        Returns the author's name, or None if the content is anonymous.
+        """
+        user_id = int(obj["user_id"])
+        profile = UserProfile.objects.get(user_id=user_id)
+        return None if self._is_anonymous(obj) else profile.name
 
     def _get_user_label(self, user_id):
         """
@@ -291,6 +300,9 @@ class _ContentSerializer(serializers.Serializer):
             return None
         last_edit = edit_history[-1]
         reason_code = last_edit.get("reason_code")
+        user = get_user_by_username_or_email(last_edit["editor_username"])
+        user_profile = UserProfile.objects.get(user=user)
+        last_edit["editor_name"] = user_profile.name
         if reason_code:
             last_edit["reason"] = EDIT_REASON_CODES.get(reason_code)
         return last_edit
@@ -340,6 +352,7 @@ class ThreadSerializer(_ContentSerializer):
     close_reason_code = serializers.CharField(required=False, validators=[validate_close_reason_code])
     close_reason = serializers.SerializerMethodField()
     closed_by = serializers.SerializerMethodField()
+    closed_by_name = serializers.SerializerMethodField()
     closed_by_label = serializers.SerializerMethodField(required=False)
 
     non_updatable_fields = NON_UPDATABLE_THREAD_FIELDS
@@ -458,6 +471,18 @@ class ThreadSerializer(_ContentSerializer):
         if is_user_author or _validate_privileged_access(self.context):
             return self._get_user_label_from_username(obj.get("closed_by"))
 
+    def get_closed_by_name(self, obj):
+        """
+        Returns the name of the moderator who closed this thread,
+        only to other privileged users and author.
+        """
+        user_name = obj.get("closed_by")
+        if user_name:
+            user = get_user_by_username_or_email(user_name)
+            profile = UserProfile.objects.get(user=user)
+            return profile.name
+        return None
+
     def create(self, validated_data):
         thread = Thread(user_id=self.context["cc_requester"]["id"], **validated_data)
         thread.save()
@@ -497,6 +522,7 @@ class CommentSerializer(_ContentSerializer):
     parent_id = serializers.CharField(required=False, allow_null=True)
     endorsed = serializers.BooleanField(required=False)
     endorsed_by = serializers.SerializerMethodField()
+    endorsed_by_name = serializers.SerializerMethodField()
     endorsed_by_label = serializers.SerializerMethodField()
     endorsed_at = serializers.SerializerMethodField()
     child_count = serializers.IntegerField(read_only=True)
@@ -532,6 +558,28 @@ class CommentSerializer(_ContentSerializer):
                 not self._is_user_privileged(endorser_id)
             ):
                 return User.objects.get(id=endorser_id).username
+        return None
+
+    def get_endorsed_by_name(self, obj):
+        """
+        Returns the profile name of the endorsing user, if the information is
+        available and would not identify the author of an anonymous thread.
+        This information is unavailable outside the thread context.
+        """
+        if not self.context.get("thread"):
+            return None
+        endorsement = obj.get("endorsement")
+        if endorsement:
+            endorser_id = int(endorsement["user_id"])
+            # Avoid revealing the identity of an anonymous non-staff question
+            # author who has endorsed a comment in the thread
+            if not (
+                self._is_anonymous(self.context["thread"]) and
+                not self._is_user_privileged(endorser_id)
+            ):
+                user = User.objects.get(id=endorser_id)
+                profile = UserProfile.objects.get(user=user)
+                return profile.name
         return None
 
     def get_endorsed_by_label(self, obj):
@@ -754,6 +802,7 @@ class DiscussionRolesMemberSerializer(serializers.Serializer):
     Serializer for course discussion roles member data.
     """
     username = serializers.CharField()
+    name = serializers.CharField()  
     email = serializers.EmailField()
     first_name = serializers.CharField()
     last_name = serializers.CharField()
@@ -822,6 +871,7 @@ class UserStatsSerializer(serializers.Serializer):
     active_flags = serializers.IntegerField()
     inactive_flags = serializers.IntegerField()
     username = serializers.CharField()
+    name = serializers.CharField()
 
     def to_representation(self, instance):
         """Remove flag counts if user is not privileged."""

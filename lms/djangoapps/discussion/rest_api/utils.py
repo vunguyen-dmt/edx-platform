@@ -11,7 +11,7 @@ from django.core.paginator import Paginator
 from django.db.models.functions import Length
 from django.utils.translation import gettext_lazy as _
 
-from common.djangoapps.student.models import CourseEnrollment
+from common.djangoapps.student.models import CourseEnrollment, get_user_by_username_or_email, UserProfile
 from common.djangoapps.student.roles import CourseStaffRole, CourseInstructorRole
 from lms.djangoapps.discussion.django_comment_client.permissions import get_team
 from lms.djangoapps.discussion.django_comment_client.utils import has_discussion_privileges
@@ -143,6 +143,29 @@ def add_stats_for_users_with_no_discussion_content(course_stats, users_in_course
     return updated_course_stats
 
 
+def add_stats_for_users_with_null_values(course_stats, users_in_course):
+    """
+    Update users stats for users with no discussion stats available in course
+    """
+    users_returned_from_api = [user['username'] for user in course_stats]
+    user_list = users_in_course.split(',')
+    users_with_no_discussion_content = set(user_list) ^ set(users_returned_from_api)
+    updated_course_stats = course_stats
+    for user in users_with_no_discussion_content:
+        profile = get_user_profile_by_username(user)
+        updated_course_stats.append({
+            'username': user,
+            'name': profile.name,
+            'threads': None,
+            'replies': None,
+            'responses': None,
+            'active_flags': None,
+            'inactive_flags': None,
+        })
+    updated_course_stats = sorted(updated_course_stats, key=lambda d: len(d['username']))
+    return updated_course_stats
+
+
 def get_course_staff_users_list(course_id):
     """
     Gets user ids for Staff roles for course discussions.
@@ -187,6 +210,28 @@ def get_moderator_users_list(course_id):
         for user in role.users.all()
     ]
     return moderator_user_ids
+
+
+def add_name_for_users_stats(users_stats):
+    update_profile_name_in_course_stats = list()
+    for user in users_stats:
+        profile = get_user_profile_by_username(user['username'])
+        update_profile_name_in_course_stats.append({
+            'username': user['username'],
+            'name': profile.name,
+            'threads': user['threads'],
+            'replies': user['replies'],
+            'responses': user['responses'],
+            'active_flags': user['active_flags'],
+            'inactive_flags': user['inactive_flags'],
+        })
+    return update_profile_name_in_course_stats
+
+
+def get_user_profile_by_username(user_name):
+    matched_user = get_user_by_username_or_email(user_name)
+    user_profile = UserProfile.objects.get(user=matched_user)
+    return user_profile
 
 
 def filter_topic_from_discussion_id(discussion_id, topics_list):

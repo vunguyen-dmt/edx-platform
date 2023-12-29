@@ -123,6 +123,8 @@ from .serializers import (
 from .utils import (
     AttributeDict,
     add_stats_for_users_with_no_discussion_content,
+    add_stats_for_users_with_null_values,
+    add_name_for_users_stats,
     create_blocks_params,
     discussion_open_for_user,
     get_usernames_for_course,
@@ -1888,6 +1890,9 @@ def get_course_discussion_user_stats(
         )
         course_stats_response["user_stats"] = updated_course_stats
 
+    update_user_stats_with_profile_name = add_name_for_users_stats(course_stats_response["user_stats"])
+    course_stats_response["user_stats"] = update_user_stats_with_profile_name
+
     serializer = UserStatsSerializer(
         course_stats_response["user_stats"],
         context={"is_privileged": is_privileged},
@@ -1944,24 +1949,3 @@ def get_users_without_stats(
         return paginator.get_paginated_response({
             "results": serializer.data,
         })
-
-
-def add_stats_for_users_with_null_values(course_stats, users_in_course):
-    """
-    Update users stats for users with no discussion stats available in course
-    """
-    users_returned_from_api = [user['username'] for user in course_stats]
-    user_list = users_in_course.split(',')
-    users_with_no_discussion_content = set(user_list) ^ set(users_returned_from_api)
-    updated_course_stats = course_stats
-    for user in users_with_no_discussion_content:
-        updated_course_stats.append({
-            'username': user,
-            'threads': None,
-            'replies': None,
-            'responses': None,
-            'active_flags': None,
-            'inactive_flags': None,
-        })
-    updated_course_stats = sorted(updated_course_stats, key=lambda d: len(d['username']))
-    return updated_course_stats
