@@ -1300,7 +1300,7 @@ def get_course_settings(request, course_key, course_block):
         # exclude current course from the list of available courses
         courses = [course for course in courses if course.id != course_key]
         if courses:
-            courses, __ = _process_courses_list(courses, in_process_course_actions)
+            courses, __, ___ = _process_courses_list(courses, in_process_course_actions)
         settings_context.update({'possible_pre_requisite_courses': courses})
 
     if credit_eligibility_enabled:
@@ -1505,11 +1505,12 @@ def get_home_context(request):
         }
 
     split_archived = settings.FEATURES.get('ENABLE_SEPARATE_ARCHIVED_COURSES', False)
-    active_courses, archived_courses = _process_courses_list(courses_iter, in_process_course_actions, split_archived)
+    active_courses, archived_courses, original_courses = _process_courses_list(courses_iter, in_process_course_actions, split_archived)
     in_process_course_actions = [format_in_process_course_view(uca) for uca in in_process_course_actions]
 
     home_context = {
         'courses': active_courses,
+        'original_courses': original_courses,
         'split_studio_home': split_library_view_on_dashboard(),
         'archived_courses': archived_courses,
         'in_process_course_actions': in_process_course_actions,

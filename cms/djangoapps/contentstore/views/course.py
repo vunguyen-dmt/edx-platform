@@ -752,6 +752,7 @@ def _process_courses_list(courses_iter, in_process_course_actions, split_archive
     in_process_action_course_keys = {uca.course_key for uca in in_process_course_actions}
     active_courses = []
     archived_courses = []
+    original_courses = []
 
     for course in courses_iter:
         if isinstance(course, ErrorBlock) or (course.id in in_process_action_course_keys):
@@ -763,7 +764,10 @@ def _process_courses_list(courses_iter, in_process_course_actions, split_archive
         else:
             active_courses.append(formatted_course)
 
-    return active_courses, archived_courses
+        if (course.display_name).lower().startswith('[oc]'):
+            original_courses.append(formatted_course)
+
+    return active_courses, archived_courses, original_courses
 
 
 def course_outline_initial_state(locator_to_show, course_structure):
