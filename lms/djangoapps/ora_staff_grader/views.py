@@ -13,7 +13,7 @@ from edx_rest_framework_extensions.auth.session.authentication import (
     SessionAuthenticationAllowInactiveUser,
 )
 from opaque_keys import InvalidKeyError
-from opaque_keys.edx.keys import UsageKey
+from opaque_keys.edx.keys import UsageKey, CourseKey
 from openassessment.xblock.config_mixin import WAFFLE_NAMESPACE, ENHANCED_STAFF_GRADER
 from rest_framework.generics import RetrieveAPIView
 from rest_framework.permissions import IsAuthenticated
@@ -59,6 +59,10 @@ from openedx.core.djangoapps.content.course_overviews.api import (
 )
 from openedx.core.djangoapps.waffle_utils import CourseWaffleFlag
 from openedx.core.lib.api.authentication import BearerAuthenticationAllowInactiveUser
+
+from common.djangoapps.student.roles import (
+    CourseStaffRole,
+)
 
 log = logging.getLogger(__name__)
 
@@ -360,6 +364,15 @@ class UpdateGradeView(StaffGraderBaseView):
     def post(self, request, ora_location, submission_uuid, *args, **kwargs):
         """Update a grade"""
         try:
+            # check manage grade permission.
+            ora_usage_key = UsageKey.from_string(ora_location)
+            course_id = str(ora_usage_key.course_key)
+            course_key = CourseKey.from_string(course_id)
+            can_not_manage_grade = CourseStaffRole(course_key).can_not_manage_grade(request.user)
+            if can_not_manage_grade:
+                log.error(f"can_not_manage_grade: user: {request.user.username}, course {course_id}, submission {submission_uuid}")
+                return UnknownErrorResponse()
+
             # Reassert that we have ownership of the submission lock
             lock_info = check_submission_lock(request, ora_location, submission_uuid)
             if not lock_info.get("lock_status") == "in-progress":
