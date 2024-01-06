@@ -66,7 +66,7 @@ from common.djangoapps.student.models import (
     get_user_by_username_or_email,
     is_email_retired,
 )
-from common.djangoapps.student.roles import CourseFinanceAdminRole, CourseSalesAdminRole
+from common.djangoapps.student.roles import CourseFinanceAdminRole, CourseSalesAdminRole, CourseRole
 from common.djangoapps.util.file import (
     FileValidationException,
     course_and_time_based_filename_generator,
@@ -1782,6 +1782,12 @@ def reset_student_attempts(request, course_id):
     )
     all_students = _get_boolean_param(request, 'all_students')
 
+    # check manage grade permission.
+    can_not_manage_grade = CourseRole(role='staff_and_limited_staff', course_key=course_id).can_not_manage_grade(request.user)
+    if can_not_manage_grade:
+        log.error(f"can_not_manage_grade case reset_student_attempts: user: {request.user.username}, course {course_id}, problem_to_reset {request.POST.get('problem_to_reset')}, unique_student_identifier {request.POST.get('unique_student_identifier')}")
+        return HttpResponseForbidden("Requires instructor access.")
+
     if all_students and not has_access(request.user, 'instructor', course):
         return HttpResponseForbidden("Requires instructor access.")
 
@@ -1931,6 +1937,13 @@ def rescore_problem(request, course_id):
     all_students and unique_student_identifier cannot both be present.
     """
     course_id = CourseKey.from_string(course_id)
+
+    # check manage grade permission.
+    can_not_manage_grade = CourseRole(role='staff_and_limited_staff', course_key=course_id).can_not_manage_grade(request.user)
+    if can_not_manage_grade:
+        log.error(f"can_not_manage_grade case rescore_problem: user: {request.user.username}, course {course_id}, problem_to_reset {request.POST.get('problem_to_reset')}, unique_student_identifier {request.POST.get('unique_student_identifier')}")
+        return HttpResponseBadRequest('Requires instructor access.')
+
     course = get_course_with_access(request.user, 'staff', course_id)
     all_students = _get_boolean_param(request, 'all_students')
 
@@ -2000,6 +2013,13 @@ def rescore_problem(request, course_id):
 @common_exceptions_400
 def override_problem_score(request, course_id):  # lint-amnesty, pylint: disable=missing-function-docstring
     course_key = CourseKey.from_string(course_id)
+
+    # check manage grade permission.
+    can_not_manage_grade = CourseRole(role='staff_and_limited_staff', course_key=course_key).can_not_manage_grade(request.user)
+    if can_not_manage_grade:
+        log.error(f"can_not_manage_grade case override_problem_score: user: {request.user.username}, course {course_id}, problem_to_reset {request.POST.get('problem_to_reset')}, unique_student_identifier {request.POST.get('unique_student_identifier')}")
+        return HttpResponseBadRequest('Requires instructor access.')
+
     score = strip_if_string(request.POST.get('score'))
     problem_to_reset = strip_if_string(request.POST.get('problem_to_reset'))
     student_identifier = request.POST.get('unique_student_identifier', None)
