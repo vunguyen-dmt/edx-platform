@@ -91,7 +91,7 @@ from openedx.features.course_duration_limits.access import course_expiration_wra
 from openedx.features.discounts.utils import offer_banner_wrapper
 from openedx.features.content_type_gating.services import ContentTypeGatingService
 from common.djangoapps.student.models import anonymous_id_for_user
-from common.djangoapps.student.roles import CourseBetaTesterRole
+from common.djangoapps.student.roles import CourseBetaTesterRole, CourseRole
 from common.djangoapps.util import milestones_helpers
 from common.djangoapps.util.json_request import JsonResponse
 from common.djangoapps.edxmako.services import MakoService
@@ -752,6 +752,14 @@ def handle_xblock_callback(request, course_id, usage_id, handler, suffix=None):
         HttpResponseForbidden: If the request method is not `GET` and user is not authenticated.
         Http404: If the course is not found in the modulestore.
     """
+
+    # check manage grade permission.
+    if handler == 'staff_assess' or handler == 'cancel_submission':
+        can_not_manage_grade = CourseRole(role='staff_and_limited_staff', course_key=CourseKey.from_string(course_id)).can_not_manage_grade(request.user)
+        if can_not_manage_grade:
+            log.error(f"can_not_manage_grade case handler {handler}: user: {request.user.username}, course {course_id}")
+            return HttpResponseForbidden('Requires instructor access')
+
     # In this case, we are using Session based authentication, so we need to check CSRF token.
     if request.user.is_authenticated:
         error = CsrfViewMiddleware(get_response=lambda request: None).process_view(request, None, (), {})
