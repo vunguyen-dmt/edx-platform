@@ -367,9 +367,9 @@ class UpdateGradeView(StaffGraderBaseView):
         try:
             # check manage grade permission.
             ora_usage_key = UsageKey.from_string(ora_location)
-            can_not_manage_grade = CourseStaffRole(ora_usage_key).can_manage_grade(request.user)
+            can_not_manage_grade = CourseStaffRole(ora_usage_key).can_not_manage_grade(request.user)
             if can_not_manage_grade:
-                log.error(f"can_not_manage_grade: user: {request.user.username}, course {course_id}, submission {submission_uuid}")
+                log.error(f"can_not_manage_grade: user: {request.user.username}, course {str(ora_usage_key.course_id)}, submission {submission_uuid}")
                 return UnknownErrorResponse()
 
             # Reassert that we have ownership of the submission lock
