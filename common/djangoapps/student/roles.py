@@ -200,7 +200,7 @@ class RoleBase(AccessRole):
         update, post, delete studuent grades, submissions.
         """
         if check_user_activation and not (user.is_authenticated and user.is_active):
-            return False
+            return True
 
         # pylint: disable=protected-access
         if not hasattr(user, '_roles'):
@@ -208,7 +208,7 @@ class RoleBase(AccessRole):
             # Stored as tuples, rather than django models, to make it cheaper to construct objects for comparison
             user._roles = RoleCache(user)
 
-        return not(user._roles.has_role('staff', self.course_key, self.org) and user._roles.has_role('limited_staff', self.course_key, self.org))
+        return user._roles.has_role('staff', self.course_key, self.org) and user._roles.has_role('limited_staff', self.course_key, self.org)
 
     def add_users(self, *users):
         """
