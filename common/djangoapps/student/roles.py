@@ -208,7 +208,7 @@ class RoleBase(AccessRole):
             # Stored as tuples, rather than django models, to make it cheaper to construct objects for comparison
             user._roles = RoleCache(user)
 
-        return not(user.roles.has_role('staff', self.course_key, self.org) and user.roles.has_role('limited_staff', self.course_key, self.org))
+        return not(user._roles.has_role('staff', self.course_key, self.org) and user._roles.has_role('limited_staff', self.course_key, self.org))
 
     def add_users(self, *users):
         """
