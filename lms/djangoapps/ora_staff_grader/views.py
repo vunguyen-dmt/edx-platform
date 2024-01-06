@@ -61,7 +61,7 @@ from openedx.core.djangoapps.waffle_utils import CourseWaffleFlag
 from openedx.core.lib.api.authentication import BearerAuthenticationAllowInactiveUser
 
 from common.djangoapps.student.roles import (
-    RoleBase,
+    CourseRole,
 )
 
 log = logging.getLogger(__name__)
@@ -368,7 +368,7 @@ class UpdateGradeView(StaffGraderBaseView):
             ora_usage_key = UsageKey.from_string(ora_location)
             # course_id = str(ora_usage_key.course_key)
             # course_key = CourseKey.from_string(course_id)
-            can_not_manage_grade = RoleBase(role_name='staff_and_limited_staff',course_key=ora_usage_key.course_key).can_not_manage_grade(request.user)
+            can_not_manage_grade = CourseRole(role='staff_and_limited_staff',course_key=ora_usage_key.course_key).can_not_manage_grade(request.user)
             if can_not_manage_grade:
                 log.error(f"can_not_manage_grade case ora_staff_grader: user: {request.user.username}, course {str(ora_usage_key.course_key)}, submission {submission_uuid}")
                 return UnknownErrorResponse()
