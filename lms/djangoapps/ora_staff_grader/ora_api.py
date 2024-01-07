@@ -19,6 +19,7 @@ from lms.djangoapps.ora_staff_grader.errors import (
 
 from lms.djangoapps.ora_staff_grader.utils import call_xblock_json_handler, is_json
 
+from opaque_keys.edx.keys import CourseKey, UsageKey
 from lms.djangoapps.courseware.block_render import handle_xblock_callback
 import logging
 log = logging.getLogger("ora_api")
@@ -91,7 +92,9 @@ def submit_grade(request, usage_id, grade_data):
     log.info(post_data)
     request.POST = post_data
 
-    response = handle_xblock_callback(request, usage_id, usage_id, "staff_assess")
+    ora_usage_key = UsageKey.from_string(usage_id)
+
+    response = handle_xblock_callback(request, str(ora_usage_key.course_key), usage_id, "staff_assess")
     log.info(response)
 
     # Unhandled errors might not be JSON, catch before loading
