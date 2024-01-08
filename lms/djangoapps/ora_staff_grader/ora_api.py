@@ -89,7 +89,6 @@ def submit_grade(request, usage_id, grade_data):
     post_data = request.data.copy()
     post_data.update(grade_data)
     log.info(post_data)
-    request.data._mutable = True
     try:
         request.data = post_data
     except:
