@@ -84,16 +84,7 @@ def submit_grade(request, usage_id, grade_data):
     handler_name = "submit_staff_assessment"
 
     #response = call_xblock_json_handler(request, usage_id, handler_name, grade_data)
-
-    log.info(request.data)
-    post_data = request.data.copy()
-    post_data.update(grade_data)
-    log.info(post_data)
-    try:
-        request.data = post_data
-    except:
-        log.error("request.data = post_data does not work")
-        request.data.update(grade_data)
+    request.data = grade_data
 
     ora_usage_key = UsageKey.from_string(usage_id)
 
