@@ -159,6 +159,17 @@ function(ValidatingView, CodeMirror, _, $, ui, DateUtils, FileUploadModel,
             this.learning_info_view.render();
             this.instructor_info_view.render();
 
+            if(!this.model.get('is_instructor')) {
+                this.$el.find('#course-start-date').prop('disabled', true);
+                this.$el.find('#course-start-time').prop('disabled', true);
+                this.$el.find('#course-end-date').prop('disabled', true);
+                this.$el.find('#course-end-time').prop('disabled', true);
+                this.$el.find('#course-enrollment-start-date').prop('disabled', true);
+                this.$el.find('#course-enrollment-start-time').prop('disabled', true);
+                this.$el.find('#course-enrollment-end-date').prop('disabled', true);
+                this.$el.find('#course-enrollment-end-time').prop('disabled', true);
+            }
+            
             return this;
         },
         fieldToSelectorMap: {
