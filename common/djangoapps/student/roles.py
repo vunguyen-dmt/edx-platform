@@ -178,6 +178,22 @@ class RoleBase(AccessRole):
 
         return user._roles.has_role(self._role_name, self.course_key, self.org)
 
+    def can_not_manage_grade(self, user, check_user_activation=True):
+        """
+        If a user has both staff and limited staff roles then they can not manage grades.
+        update, post, delete studuent grades, submissions.
+        """
+        if check_user_activation and not (user.is_authenticated and user.is_active):
+            return True
+
+        # pylint: disable=protected-access
+        if not hasattr(user, '_roles'):
+            # Cache a list of tuples identifying the particular roles that a user has
+            # Stored as tuples, rather than django models, to make it cheaper to construct objects for comparison
+            user._roles = RoleCache(user)
+
+        return user._roles.has_role('staff', self.course_key, self.org) and user._roles.has_role('beta_testers', self.course_key, self.org)
+
     def add_users(self, *users):
         """
         Add the supplied django users to this role.
