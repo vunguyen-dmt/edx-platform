@@ -84,7 +84,7 @@ def submit_grade(request, usage_id, grade_data):
     handler_name = "submit_staff_assessment"
 
     #response = call_xblock_json_handler(request, usage_id, handler_name, grade_data)
-    request.data = grade_data
+    request.data = dict(grade_data)
 
     ora_usage_key = UsageKey.from_string(usage_id)
 
