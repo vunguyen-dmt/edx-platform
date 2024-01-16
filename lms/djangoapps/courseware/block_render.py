@@ -755,7 +755,7 @@ def handle_xblock_callback(request, course_id, usage_id, handler, suffix=None):
 
     # check manage grade permission.
     if handler == 'staff_assess' or handler == 'cancel_submission':
-        can_not_manage_grade = CourseRole(role='staff_and_limited_staff', course_key=CourseKey.from_string(course_id)).can_not_manage_grade(request.user)
+        can_not_manage_grade = CourseRole(role='staff_can_not_manage_grade', course_key=CourseKey.from_string(course_id)).can_not_manage_grade(request.user)
         if can_not_manage_grade:
             log.error(f"can_not_manage_grade case handler {handler}: user: {request.user.username}, course {course_id}")
             return HttpResponseForbidden('Requires instructor access')

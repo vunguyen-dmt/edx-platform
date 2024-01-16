@@ -823,7 +823,7 @@ class GradebookBulkUpdateView(GradeViewMixin, PaginatedAPIView):
         course and subsection grades for the specified user.
         """
         # check manage grade permission.
-        can_not_manage_grade = CourseRole(role='staff_and_limited_staff', course_key=course_key).can_not_manage_grade(request.user)
+        can_not_manage_grade = CourseRole(role='staff_can_not_manage_grade', course_key=course_key).can_not_manage_grade(request.user)
         if can_not_manage_grade:
             log.error(f"can_not_manage_grade case update_grade_book: user: {request.user.username}, course {course_key}")
             raise self.api_error(

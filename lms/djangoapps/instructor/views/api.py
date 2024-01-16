@@ -1783,7 +1783,7 @@ def reset_student_attempts(request, course_id):
     all_students = _get_boolean_param(request, 'all_students')
 
     # check manage grade permission.
-    can_not_manage_grade = CourseRole(role='staff_and_limited_staff', course_key=course_id).can_not_manage_grade(request.user)
+    can_not_manage_grade = CourseRole(role='staff_can_not_manage_grade', course_key=course_id).can_not_manage_grade(request.user)
     if can_not_manage_grade:
         log.error(f"can_not_manage_grade case reset_student_attempts: user: {request.user.username}, course {course_id}, problem_to_reset {request.POST.get('problem_to_reset')}, unique_student_identifier {request.POST.get('unique_student_identifier')}")
         return HttpResponseForbidden("Requires instructor access.")
@@ -1939,7 +1939,7 @@ def rescore_problem(request, course_id):
     course_id = CourseKey.from_string(course_id)
 
     # check manage grade permission.
-    can_not_manage_grade = CourseRole(role='staff_and_limited_staff', course_key=course_id).can_not_manage_grade(request.user)
+    can_not_manage_grade = CourseRole(role='staff_can_not_manage_grade', course_key=course_id).can_not_manage_grade(request.user)
     if can_not_manage_grade:
         log.error(f"can_not_manage_grade case rescore_problem: user: {request.user.username}, course {course_id}, problem_to_reset {request.POST.get('problem_to_reset')}, unique_student_identifier {request.POST.get('unique_student_identifier')}")
         return HttpResponseBadRequest('Requires instructor access.')
@@ -2015,7 +2015,7 @@ def override_problem_score(request, course_id):  # lint-amnesty, pylint: disable
     course_key = CourseKey.from_string(course_id)
 
     # check manage grade permission.
-    can_not_manage_grade = CourseRole(role='staff_and_limited_staff', course_key=course_key).can_not_manage_grade(request.user)
+    can_not_manage_grade = CourseRole(role='staff_can_not_manage_grade', course_key=course_key).can_not_manage_grade(request.user)
     if can_not_manage_grade:
         log.error(f"can_not_manage_grade case override_problem_score: user: {request.user.username}, course {course_id}, problem_to_reset {request.POST.get('problem_to_reset')}, unique_student_identifier {request.POST.get('unique_student_identifier')}")
         return HttpResponseBadRequest('Requires instructor access.')
