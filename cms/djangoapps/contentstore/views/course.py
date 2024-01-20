@@ -17,7 +17,7 @@ from ccx_keys.locator import CCXLocator
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError as DjangoValidationError
 from django.http import Http404, HttpResponse, HttpResponseBadRequest, HttpResponseNotFound
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -1250,8 +1250,10 @@ def settings_handler(request, course_key_string):  # lint-amnesty, pylint: disab
 
             return render_to_response('settings.html', settings_context)
         elif 'application/json' in request.META.get('HTTP_ACCEPT', ''):  # pylint: disable=too-many-nested-blocks
+            validate_instructor = CourseInstructorRole(course_key).has_user(request.user)
             if request.method == 'GET':
                 course_details = CourseDetails.fetch(course_key)
+                course_details.is_instructor = validate_instructor
                 return JsonResponse(
                     course_details,
                     # encoder serializes dates, old locations, and instances
@@ -1312,10 +1314,13 @@ def settings_handler(request, course_key_string):  # lint-amnesty, pylint: disab
                         delete_entrance_exam(request, course_key)
 
                 # Perform the normal update workflow for the CourseDetails model
-                return JsonResponse(
-                    CourseDetails.update_from_json(course_key, request.json, request.user),
-                    encoder=CourseSettingsEncoder
-                )
+                try:
+                    if validate_instructor:
+                        update_data = CourseDetails.update_from_json(course_key, request.json, request.user)
+                except DjangoValidationError as err:
+                    return JsonResponseBadRequest({"error": err.message})
+                
+                return JsonResponse(update_data, encoder=CourseSettingsEncoder)
 
 
 @login_required
