@@ -22,7 +22,7 @@ from rest_framework.views import APIView
 
 from common.djangoapps.student.auth import has_course_author_access
 from common.djangoapps.student.models import CourseAccessRole, CourseEnrollment, CourseMode
-from common.djangoapps.student.roles import BulkRoleCache
+from common.djangoapps.student.roles import BulkRoleCache, CourseRole
 from common.djangoapps.track.event_transaction_utils import (
     create_new_event_transaction_id,
     get_event_transaction_id,
@@ -822,6 +822,16 @@ class GradebookBulkUpdateView(GradeViewMixin, PaginatedAPIView):
         after the grade override is created, which triggers a celery task to update the
         course and subsection grades for the specified user.
         """
+        # check manage grade permission.
+        can_not_manage_grade = CourseRole(role='staff_can_not_manage_grade', course_key=course_key).can_not_manage_grade(request.user)
+        if can_not_manage_grade:
+            log.error(f"can_not_manage_grade case update_grade_book: user: {request.user.username}, course {course_key}")
+            raise self.api_error(
+                status_code=status.HTTP_403_FORBIDDEN,
+                developer_message='Requires instructor access.',
+                error_code='can_not_manage_grade'
+            )
+
         if are_grades_frozen(course_key):
             raise self.api_error(
                 status_code=status.HTTP_403_FORBIDDEN,
