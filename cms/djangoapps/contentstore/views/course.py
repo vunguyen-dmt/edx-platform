@@ -1107,8 +1107,10 @@ def settings_handler(request, course_key_string):  # lint-amnesty, pylint: disab
             settings_context = get_course_settings(request, course_key, course_block)
             return render_to_response('settings.html', settings_context)
         elif 'application/json' in request.META.get('HTTP_ACCEPT', ''):  # pylint: disable=too-many-nested-blocks
+            validate_instructor = CourseInstructorRole(course_key).has_user(request.user)
             if request.method == 'GET':
                 course_details = CourseDetails.fetch(course_key)
+                course_details.is_instructor = validate_instructor
                 return JsonResponse(
                     course_details,
                     # encoder serializes dates, old locations, and instances
@@ -1117,7 +1119,8 @@ def settings_handler(request, course_key_string):  # lint-amnesty, pylint: disab
             # For every other possible method type submitted by the caller...
             else:
                 try:
-                    update_data = update_course_details(request, course_key, request.json, course_block)
+                    if validate_instructor:
+                        update_data = update_course_details(request, course_key, request.json, course_block)
                 except DjangoValidationError as err:
                     return JsonResponseBadRequest({"error": err.message})
 
