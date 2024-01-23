@@ -1107,7 +1107,11 @@ def settings_handler(request, course_key_string):  # lint-amnesty, pylint: disab
             settings_context = get_course_settings(request, course_key, course_block)
             return render_to_response('settings.html', settings_context)
         elif 'application/json' in request.META.get('HTTP_ACCEPT', ''):  # pylint: disable=too-many-nested-blocks
-            validate_instructor = CourseInstructorRole(course_key).has_user(request.user)
+            validate_instructor = CourseInstructorRole(course_key).has_user(request.user) or GlobalStaff.has_user(request.user)
+            log.info('isInstructor : ' + CourseInstructorRole(course_key).has_user(request.user))
+            log.info('isCourseStaff : ' + CourseStaffRole(course_key).has_user(request.user))
+            log.info('isGlobalStaff : ' + GlobalStaff.has_user(request.user))
+
             if request.method == 'GET':
                 course_details = CourseDetails.fetch(course_key)
                 course_details.is_instructor = validate_instructor
