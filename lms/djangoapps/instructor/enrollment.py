@@ -25,6 +25,7 @@ from common.djangoapps.course_modes.models import CourseMode
 from common.djangoapps.student.models import (  # lint-amnesty, pylint: disable=line-too-long
     CourseEnrollment,
     CourseEnrollmentAllowed,
+    CourseAccessRole,
     anonymous_id_for_user,
     is_email_retired
 )
@@ -497,6 +498,15 @@ def send_mail_to_student(student, param_dict, language=None):
         'SITE_NAME',
         param_dict['site_name']
     )
+
+    # Add check is instructor or staff role
+    user_enrolled = User.objects.get(email=param_dict['email_address'])
+    roles = CourseAccessRole.objects.filter(user=user_enrolled)
+    param_dict['is_staff_or_instructor_role'] = False
+    for item in roles:
+        if item.role == 'instructor' or item.role == 'staff':
+            param_dict['is_staff_or_instructor_role'] = True
+            break
 
     # Extract an LMS user ID for the student, if possible.
     # ACE needs the user ID to be able to send email via Braze.
