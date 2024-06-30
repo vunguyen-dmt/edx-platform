@@ -628,8 +628,15 @@ def _visible_fields_from_custom_preferences(user, configuration):
     given user's preferences. Includes fields that are always public.
     """
     preferences = UserPreference.get_all_preferences(user)
-    fields_shared_with_all_users = [
-        field_name for field_name in configuration.get('custom_shareable_fields')
-        if preferences.get(f'{VISIBILITY_PREFIX}{field_name}') == 'all_users'
-    ]
+    # fields_shared_with_all_users = [
+    #     field_name for field_name in configuration.get('custom_shareable_fields')
+    #     if preferences.get(f'{VISIBILITY_PREFIX}{field_name}') == 'all_users'
+    # ]
+    fields_shared_with_all_users = []
+    custom_shareable_fields = configuration.get('custom_shareable_fields')
+    if custom_shareable_fields:
+        fields_shared_with_all_users = [
+            field_name for field_name in custom_shareable_fields
+            if preferences.get(f'{VISIBILITY_PREFIX}{field_name}') == 'all_users'
+        ]
     return set(fields_shared_with_all_users + configuration.get('public_fields'))
