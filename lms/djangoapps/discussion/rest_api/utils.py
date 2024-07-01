@@ -19,6 +19,7 @@ from openedx.core.djangoapps.django_comment_common.models import (
     FORUM_ROLE_MODERATOR,
     Role
 )
+from common.djangoapps.student.models import UserProfile
 
 
 class AttributeDict(dict):
@@ -121,6 +122,8 @@ def add_stats_for_users_with_no_discussion_content(course_stats, users_in_course
     users_with_no_discussion_content = set(user_list) ^ set(users_returned_from_api)
     updated_course_stats = course_stats
     for user in users_with_no_discussion_content:
+        user_profile = UserProfile.objects.select_related('user').get(user__username=user)
+        fullname = user_profile.name if user_profile else ''
         updated_course_stats.append({
             'username': user,
             'threads': 0,
@@ -128,6 +131,7 @@ def add_stats_for_users_with_no_discussion_content(course_stats, users_in_course
             'responses': 0,
             'active_flags': 0,
             'inactive_flags': 0,
+            'fullname': fullname
         })
     updated_course_stats = sorted(updated_course_stats, key=lambda d: len(d['username']))
     return updated_course_stats

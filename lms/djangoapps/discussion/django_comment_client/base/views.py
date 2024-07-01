@@ -67,6 +67,7 @@ from openedx.core.djangoapps.django_comment_common.signals import (
 )
 from openedx.core.djangoapps.django_comment_common.utils import ThreadContext
 from openedx.core.lib.courses import get_course_by_id
+from common.djangoapps.student.models import UserProfile
 
 log = logging.getLogger(__name__)
 
@@ -1150,10 +1151,12 @@ def users(request, course_id):
         cc_user = cc.User.from_django_user(matched_user)
         cc_user.course_id = course_key
         cc_user.retrieve(complete=False)
+        user_profile = UserProfile.get(user_id=matched_user.id)
         if (cc_user['threads_count'] + cc_user['comments_count']) > 0:
             user_objs.append({
                 'id': matched_user.id,
                 'username': matched_user.username,
+                'fullname': user_profile.name if user_profile else ''
             })
     except User.DoesNotExist:
         pass
