@@ -224,7 +224,8 @@
                 };
 
                 Player.prototype.destroy = function() {
-                    this.video.removeEventListener('loadedmetadata', this.onLoadedMetadata, false);
+                    var isTouchDevice = window.onTouchBasedDevice() || '';
+                    this.video.removeEventListener(/iP(hone|od)/i.test(isTouchDevice[0])? 'canplay' : 'loadedmetadata', this.onLoadedMetadata, false);
                     this.video.removeEventListener('play', this.onPlay, false);
                     this.video.removeEventListener('playing', this.onPlaying, false);
                     this.video.removeEventListener('pause', this.onPause, false);
@@ -349,7 +350,7 @@
                     // When the <video> tag has been processed by the browser, and it
                     // is ready for playback, notify other parts of the VideoPlayer,
                     // and initially pause the video.
-                    this.video.addEventListener('loadedmetadata', this.onLoadedMetadata, false);
+                    this.video.addEventListener(/iP(hone|od)/i.test(isTouch[0])? 'canplay' : 'loadedmetadata', this.onLoadedMetadata, false);
                     this.video.addEventListener('play', this.onPlay, false);
                     this.video.addEventListener('playing', this.onPlaying, false);
                     this.video.addEventListener('pause', this.onPause, false);

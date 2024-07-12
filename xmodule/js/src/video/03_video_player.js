@@ -105,11 +105,12 @@
             //     have to do repeated jQuery element selects.
             // eslint-disable-next-line no-underscore-dangle
             function _initialize(state) {
+                var isTouchDevice = window.onTouchBasedDevice() || '';
                 var youTubeId,
                     player,
                     userAgent,
                     commonPlayerConfig,
-                    eventToBeTriggered = 'loadedmetadata';
+                    eventToBeTriggered = /iP(hone|od)/i.test(isTouchDevice[0]) ? 'canplay' : 'loadedmetadata';
 
                 // The function is called just once to apply pre-defined configurations
                 // by student before video starts playing. Waits until the video's
@@ -345,6 +346,7 @@
             // ***************************************************************
 
             function destroy() {
+                var isTouchDevice = window.onTouchBasedDevice() || '';
                 var player = this.videoPlayer.player;
                 this.el.removeClass([
                     'is-unstarted', 'is-playing', 'is-paused', 'is-buffered',
@@ -358,7 +360,7 @@
                     this.resizer.destroy();
                 }
                 if (player && player.video) {
-                    player.video.removeEventListener('loadedmetadata', this.videoPlayer.onLoadMetadataHtml5, false);
+                    player.video.removeEventListener(/iP(hone|od)/i.test(isTouchDevice[0]) ? 'canplay' : 'loadedmetadata', this.videoPlayer.onLoadMetadataHtml5, false);
                 }
                 if (player && _.isFunction(player.destroy)) {
                     player.destroy();
