@@ -4,6 +4,9 @@
 
 {% blocktrans %}To start accessing course materials, please visit {{ course_url }}{% endblocktrans %}
 
+{% blocktrans %}Instructor can refer to the guide for using the {{ platform_name }} course <a target="_blank" href="https://dlc.cirtech.edu.vn/hutech-x-doc/gioi-thieu-he-thong-638351149296853141">here</a>.{% endblocktrans %}
+
+{% blocktrans %}Learner can refer to the guide for using the {{ platform_name }} course <a target="_blank" href="https://apps.lms.hutech.edu.vn/home/faq?role=student">here</a>.{% endblocktrans %}
 ----
 {% blocktrans %}This email was automatically sent from {{ site_name }} to {{ full_name }}{% endblocktrans %}
 {% endautoescape %}
