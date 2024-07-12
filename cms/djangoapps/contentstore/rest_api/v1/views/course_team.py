@@ -12,6 +12,18 @@ from openedx.core.lib.api.view_utils import DeveloperErrorViewMixin, verify_cour
 
 from ..serializers import CourseTeamSerializer
 
+from common.djangoapps.student.roles import (
+    CourseBetaTesterRole,
+    CourseInstructorRole,
+    CourseLimitedStaffRole,
+    CourseStaffRole,
+)
+
+from common.djangoapps.student.roles import (
+    GlobalStaff
+)
+
+from django.contrib.auth.models import User
 
 @view_auth_classes(is_authenticated=True)
 class CourseTeamView(DeveloperErrorViewMixin, APIView):
@@ -72,3 +84,47 @@ class CourseTeamView(DeveloperErrorViewMixin, APIView):
         course_team_context = get_course_team(user, course_key, user_perms)
         serializer = CourseTeamSerializer(course_team_context)
         return Response(serializer.data)
+
+    @verify_course_exists()
+    def post(self, request: Request, course_id: str):
+        """
+        set course team member.
+        """
+        course_key = CourseKey.from_string(course_id)
+        user_perms = get_user_permissions(request.user, course_key)
+        if not GlobalStaff().has_user(request.user):
+            self.permission_denied(request)
+
+        if not user_perms & STUDIO_VIEW_USERS:
+            self.permission_denied(request)
+
+        ROLES = {
+            'beta': CourseBetaTesterRole,
+            'instructor': CourseInstructorRole,
+            'staff': CourseStaffRole,
+            'limited_staff': CourseLimitedStaffRole
+        }
+
+        level = request.query_params.get('level')
+        action = request.query_params.get('action')
+        email = request.query_params.get('email')
+
+        try:
+            role = ROLES[level](course_key)
+        except KeyError:
+            raise ValueError(f"unrecognized level '{level}'")  # lint-amnesty, pylint: disable=raise-missing-from
+
+        try:
+            user = User.objects.get(email=email)
+        except Exception:  # pylint: disable=broad-except
+            return Response(status=404)
+
+        if action == 'allow':
+            role.add_users(user)
+        elif action == 'revoke':
+            role.remove_users(user)
+        else:
+            raise ValueError(f"unrecognized action '{action}'")
+
+        return Response(status=200)
+
