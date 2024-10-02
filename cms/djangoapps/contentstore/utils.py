@@ -1630,6 +1630,7 @@ def get_course_context_v2(request):
             'display_name': uca.display_name,
             'course_key': str(uca.course_key),
             'org': uca.course_key.org,
+            'org_default': uca.display_org_with_default,
             'number': uca.course_key.course,
             'run': uca.course_key.run,
             'is_failed': uca.state == CourseRerunUIStateManager.State.FAILED,

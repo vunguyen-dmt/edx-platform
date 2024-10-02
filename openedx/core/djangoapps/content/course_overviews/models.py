@@ -22,6 +22,7 @@ from django.utils.functional import cached_property
 from model_utils.models import TimeStampedModel
 from opaque_keys.edx.django.models import CourseKeyField, UsageKeyField
 from simple_history.models import HistoricalRecords
+from opaque_keys.edx.locator import CourseLocator
 
 from lms.djangoapps.courseware.model_data import FieldDataCache
 from openedx.core.djangoapps.catalog.models import CatalogIntegration
@@ -701,6 +702,40 @@ class CourseOverview(TimeStampedModel):
         return course_overviews
 
     @classmethod
+    def get_courses_by_org_default(cls, org_default, course_overviews):
+        """
+        Return a queryset of CourseOverview objects filtered by the given query.
+
+        Args:
+            org_default: filter by organization.
+            course_overviews: queryset of CourseOverview objects to filter on.
+        """
+        return course_overviews.filter(
+            Q(display_org_with_default__iexact=org_default)
+        )
+    
+    @classmethod
+    def get_courses_by_course_run(cls, run, course_overviews):
+        """
+        Return a queryset of CourseOverview objects filtered by the given query.
+
+        Args:
+            run: filter by course run.
+            course_overviews: queryset of CourseOverview objects to filter on.
+        """
+        course_overviews_contain_run = course_overviews.filter(Q(id__icontains=run))
+        course_overviews_filtered = course_overviews_contain_run
+
+        for course in course_overviews_contain_run:
+            course_key = CourseLocator._to_string(course.id)
+            exact = course_key.split('+')
+
+            if exact[2] != run:
+                course_overviews_filtered = course_overviews_filtered.exclude(id__iexact=course.id)
+
+        return course_overviews_filtered
+    
+    @classmethod
     def get_courses_matching_query(cls, query, course_overviews):
         """
         Return a queryset of CourseOverview objects filtered bythe given query.
@@ -711,7 +746,7 @@ class CourseOverview(TimeStampedModel):
         """
         return course_overviews.filter(
             Q(display_name__icontains=query) |
-            Q(org__icontains=query) |
+            Q(display_org_with_default__icontains=query) |
             Q(id__icontains=query)
         )
 

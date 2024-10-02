@@ -424,13 +424,15 @@ def _accessible_courses_summary_iter(request, org=None):
         courses_summary = modulestore().get_course_summaries()
 
     if enable_home_page_api_v2:
-        search_query, order, active_only, archived_only = get_query_params_if_present(request)
+        search_query, order, active_only, archived_only, org_default, run = get_query_params_if_present(request)
         courses_summary = get_filtered_and_ordered_courses(
             courses_summary,
             active_only,
             archived_only,
             search_query,
             order,
+            org_default,
+            run,
         )
 
     courses_summary = filter(course_filter, courses_summary)
@@ -453,18 +455,22 @@ def get_query_params_if_present(request):
             The default value is None.
         archived_only (str): if not None, this value will limit the courses returned to archived courses.
             The default value is None.
+        org_default (str): filter organization in Course Overviews.
+        run (str): filter course run by id in Course Overviews.
     """
-    allowed_query_params = ['search', 'order', 'active_only', 'archived_only']
+    allowed_query_params = ['search', 'order', 'active_only', 'archived_only', 'org_default', 'run']
     if not any(param in request.GET for param in allowed_query_params):
-        return None, None, None, None
+        return None, None, None, None, None, None
     search_query = request.GET.get('search')
     order = request.GET.get('order')
     active_only = get_bool_param(request, 'active_only', None)
     archived_only = get_bool_param(request, 'archived_only', None)
-    return search_query, order, active_only, archived_only
+    org_default = request.GET.get('org_default')
+    run = request.GET.get('run')
+    return search_query, order, active_only, archived_only, org_default, run
 
 
-def get_filtered_and_ordered_courses(course_overviews, active_only, archived_only, search_query, order):
+def get_filtered_and_ordered_courses(course_overviews, active_only, archived_only, search_query, order, org_default, run):
     """
     Returns the filtered and ordered courses based on the query params.
 
@@ -480,6 +486,8 @@ def get_filtered_and_ordered_courses(course_overviews, active_only, archived_onl
     Returns:
         Course Overview objects: queryset filtered and ordered based on the query params.
     """
+    course_overviews = get_courses_by_org_default(org_default, course_overviews)
+    course_overviews = get_courses_by_course_run(run, course_overviews)
     course_overviews = get_courses_by_status(active_only, archived_only, course_overviews)
     course_overviews = get_courses_by_search_query(search_query, course_overviews)
     course_overviews = get_courses_order_by(order, course_overviews)
@@ -576,13 +584,15 @@ def _accessible_courses_list_from_groups(request):
     if course_keys:
         courses_list = CourseOverview.get_all_courses(filter_={'id__in': course_keys})
 
-    search_query, order, active_only, archived_only = get_query_params_if_present(request)
+    search_query, order, active_only, archived_only, org_default, run = get_query_params_if_present(request)
     courses_list = get_filtered_and_ordered_courses(
         courses_list,
         active_only,
         archived_only,
         search_query,
         order,
+        org_default,
+        run,
     )
 
     return courses_list, []
@@ -613,6 +623,30 @@ def get_courses_by_search_query(search_query, course_overviews):
         return course_overviews
     return CourseOverview.get_courses_matching_query(search_query, course_overviews=course_overviews)
 
+
+def get_courses_by_org_default(org_default, course_overviews):
+    """
+    Return course overviews based on a base queryset filtered by a organization.
+
+    Args:
+        org_default (str): if not None, this value will limit the courses returned to override organization.
+        course_overviews (Course Overview objects): course overview queryset to be filtered.
+    """
+    if org_default == 'allOrganization' or org_default is None:
+        return course_overviews
+    return CourseOverview.get_courses_by_org_default(org_default, course_overviews)
+
+def get_courses_by_course_run(run, course_overviews):
+    """
+    Return course overviews based on a base queryset filtered by a organization.
+
+    Args:
+        run (str): if not None, this value will limit the courses returned to courses run.
+        course_overviews (Course Overview objects): course overview queryset to be filtered.
+    """
+    if run == 'allCourseRun' or run is None:
+        return course_overviews
+    return CourseOverview.get_courses_by_course_run(run, course_overviews)
 
 def get_courses_order_by(order_query, course_overviews):
     """Return course overviews based on a base queryset ordered by a query.

@@ -17,13 +17,15 @@ from cms.djangoapps.contentstore.rest_api.v2.serializers import CourseHomeTabSer
 class HomePageCoursesPaginator(PageNumberPagination):
     """Custom paginator for the home page courses view version 2."""
 
-    def get_paginated_response(self, data):
+    def get_paginated_response(self, data, run_list, org_default_list):
         """Return a paginated style `Response` object for the given output data."""
         return Response(OrderedDict([
             ('count', self.page.paginator.count),
             ('num_pages', self.page.paginator.num_pages),
             ('next', self.get_next_link()),
             ('previous', self.get_previous_link()),
+            ('org_default_list', org_default_list),
+            ('run_list', run_list),
             ('results', data),
         ]))
 
@@ -49,9 +51,14 @@ class HomePageCoursesViewV2(APIView):
     @apidocs.schema(
         parameters=[
             apidocs.string_parameter(
-                "org",
+                "org_default",
                 apidocs.ParameterLocation.QUERY,
-                description="Query param to filter by course org",
+                description="Query param to filter by course org_default",
+            ),
+            apidocs.string_parameter(
+                "run",
+                apidocs.ParameterLocation.QUERY,
+                description="Query param the course run",
             ),
             apidocs.string_parameter(
                 "search",
@@ -134,6 +141,19 @@ class HomePageCoursesViewV2(APIView):
             return HttpResponseNotFound()
 
         courses, in_process_course_actions = get_course_context_v2(request)
+        
+        organization_list, _ = get_course_context_v2(request)
+        course_id_list = list(organization_list)
+        list_run = list()
+        list_org_default = list()
+        for course in course_id_list:
+            list_run.append(course.id.run) # use for first time, next time not use
+            if request.GET.get('run') != None:
+                list_org_default.append(course.display_org_with_default)
+
+        list_run = sorted(list(set(list_run)), reverse=True)
+        list_org_default = sorted(list(set(list_org_default)))
+
         paginator = HomePageCoursesPaginator()
         courses_page = paginator.paginate_queryset(
             courses,
@@ -144,4 +164,4 @@ class HomePageCoursesViewV2(APIView):
             'courses': courses_page,
             'in_process_course_actions': in_process_course_actions,
         })
-        return paginator.get_paginated_response(serializer.data)
+        return paginator.get_paginated_response(serializer.data, list_run, list_org_default)
