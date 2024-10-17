@@ -420,12 +420,37 @@
         width: 100%;
       }
 
-      .member-profile {
-        position: relative;
-        display: inline-block;
-
-        @include tooltip-hover-style(-($baseline*2));
+      .team-detail-title,
+      .team-language {
+        margin-bottom: unset;
       }
+
+      .team-members {
+        margin-bottom: unset;
+        max-height: 900px;
+        overflow-y: auto;
+
+        .member-profile {
+          position: relative;
+          display: flex;
+          text-decoration: none;
+  
+          @include tooltip-hover-style(-($baseline*2));
+  
+          .tooltip-custom {
+            > span {
+              display: block
+            }
+          }
+  
+          .member-detail {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.25em;
+            padding-left: 0.5em
+          }
+        }
+      } 
     }
   }
 

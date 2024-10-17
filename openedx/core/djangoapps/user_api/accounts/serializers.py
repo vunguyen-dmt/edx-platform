@@ -619,7 +619,7 @@ def _visible_fields(user_profile, user, configuration=None):
         return _visible_fields_from_custom_preferences(user, configuration)
 
     else:
-        return configuration.get('public_fields')
+        return configuration.get('team_fields')
 
 
 def _visible_fields_from_custom_preferences(user, configuration):
@@ -632,4 +632,4 @@ def _visible_fields_from_custom_preferences(user, configuration):
         field_name for field_name in configuration.get('custom_shareable_fields')
         if preferences.get(f'{VISIBILITY_PREFIX}{field_name}') == 'all_users'
     ]
-    return set(fields_shared_with_all_users + configuration.get('public_fields'))
+    return set(fields_shared_with_all_users + configuration.get('team_fields'))

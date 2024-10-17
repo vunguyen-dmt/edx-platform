@@ -1,8 +1,16 @@
 <li>
   <span class="team-member">
     <a class="member-profile" href="<%- memberProfileUrl %>">
-      <p class="tooltip-custom"><%- username %></p>
-      <img class="image-url" src="<%- imageUrl %>" alt="profile page" />
+      <div>
+        <img class="image-url" src="<%- imageUrl %>" alt="profile page" />
+      </div>
+      <div class="member-detail">
+        <% if (name) { %>
+          <span><%- name %></span>
+        <% } %>
+        <span><%- username %></span>
+        <span><%- email %></span>
+      </div>
     </a>
   </span>
 </li>

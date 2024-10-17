@@ -4233,6 +4233,14 @@ ACCOUNT_VISIBILITY_CONFIGURATION = {
     ],
 }
 
+# The list of all fields that are shared with other users using for user info in team 
+ACCOUNT_VISIBILITY_CONFIGURATION["team_fields"] = (
+    ACCOUNT_VISIBILITY_CONFIGURATION["public_fields"] + [
+        'email',
+        'name',
+    ]
+)
+
 # The list of all fields that are shared with other users using the bulk 'all_users' privacy setting
 ACCOUNT_VISIBILITY_CONFIGURATION["bulk_shareable_fields"] = (
     ACCOUNT_VISIBILITY_CONFIGURATION["public_fields"] + [
