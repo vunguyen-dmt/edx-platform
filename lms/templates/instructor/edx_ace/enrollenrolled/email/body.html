@@ -23,6 +23,15 @@
                 <br />
             </p>
 
+            <p style="color: rgba(0,0,0,.75);">
+                {% if is_staff_or_instructor_role %}
+                    {% blocktrans %}Instructor can refer to the guide for using the {{ platform_name }} course <a target="_blank" href="https://dlc.cirtech.edu.vn/hutech-x-doc/gioi-thieu-he-thong-638351149296853141">here</a>.{% endblocktrans %}
+                {% else %}
+                    {% blocktrans %}Learner can refer to the guide for using the {{ platform_name }} course <a target="_blank" href="https://apps.lms.hutech.edu.vn/home/faq?role=student">here</a>.{% endblocktrans %}
+                {% endif %}
+                <br />
+            </p>
+
             {% filter force_escape %}
                 {% blocktrans asvar course_cta_text %}Access the Course Materials Now{% endblocktrans %}
             {% endfilter %}
