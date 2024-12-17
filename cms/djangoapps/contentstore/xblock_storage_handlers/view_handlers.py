@@ -1558,6 +1558,9 @@ def _get_release_date(xblock, user=None):
     # If year of start date is less than 1900 then reset the start date to DEFAULT_START_DATE
     reset_to_default = False
     try:
+        if xblock.start is None:
+            xblock.start = DEFAULT_START_DATE
+
         reset_to_default = xblock.start.year < 1900
     except ValueError:
         # For old mongo courses, accessing the start attribute calls `to_json()`,
