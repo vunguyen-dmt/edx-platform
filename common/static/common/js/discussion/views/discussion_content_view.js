@@ -500,6 +500,7 @@
             DiscussionContentShowView.prototype.getAuthorDisplay = function() {
                 return _.template($('#post-user-display-template').html())({
                     username: this.model.get('username') || null,
+                    user_display: this.model.get('user_fullname') ? this.model.get('user_fullname') + ' (' + this.model.get('username') + ')' : this.model.get('username'),
                     user_url: this.model.get('user_url'),
                     is_community_ta: this.model.get('community_ta_authored'),
                     is_staff: this.model.get('staff_authored')
