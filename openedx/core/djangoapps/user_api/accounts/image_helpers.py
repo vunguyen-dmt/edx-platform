@@ -103,7 +103,7 @@ def get_profile_image_urls_for_user(user, request=None):
             )
         else:
             urls = _get_default_profile_image_urls()
-    except UserProfile.DoesNotExist:
+    except:
         # when user does not have profile it raises exception, when exception
         # occur we can simply get default image.
         urls = _get_default_profile_image_urls()
