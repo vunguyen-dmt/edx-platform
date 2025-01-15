@@ -1561,14 +1561,16 @@ def get_library_context(request, request_is_json=False):
         'libraries': [_format_library_for_view(lib, request) for lib in libraries],
     }
 
+    show_new_library_button = user_can_view_create_library_button(request.user) and request.user.is_active
+
     if not request_is_json:
         return {
             **data,
             'in_process_course_actions': [],
             'courses': [],
             'libraries_enabled': libraries_v1_enabled(),
-            'show_new_library_button': user_can_view_create_library_button(request.user) and request.user.is_active,
-            'show_new_library_v2_button': user_can_create_library(request.user),
+            'show_new_library_button': show_new_library_button,
+            'show_new_library_v2_button': show_new_library_button,
             'user': request.user,
             'request_course_creator_url': reverse('request_course_creator'),
             'course_creator_status': _get_course_creator_status(request.user),
@@ -1709,6 +1711,8 @@ def get_home_context(request, no_course=False):
     if not split_library_view_on_dashboard() and libraries_v1_enabled() and not no_course:
         libraries = get_library_context(request, True)['libraries']
 
+    show_new_library_button = user_can_view_create_library_button(user)
+
     home_context = {
         'courses': active_courses,
         'split_studio_home': split_library_view_on_dashboard(),
@@ -1720,8 +1724,8 @@ def get_home_context(request, no_course=False):
         'taxonomies_enabled': not is_tagging_feature_disabled(),
         'taxonomy_list_mfe_url': get_taxonomy_list_url(),
         'libraries': libraries,
-        'show_new_library_button': user_can_view_create_library_button(user),
-        'show_new_library_v2_button': user_can_create_library(user),
+        'show_new_library_button': show_new_library_button,
+        'show_new_library_v2_button': show_new_library_button,
         'user': user,
         'request_course_creator_url': reverse('request_course_creator'),
         'course_creator_status': _get_course_creator_status(user),
