@@ -673,7 +673,7 @@ class CourseNavigationBlocksView(RetrieveAPIView):
         available_sequence_ids = set(map(str, user_course_outline.sequences))
         return [
             seq_data for seq_data in course_sequences
-            if seq_data['id'] in available_sequence_ids or seq_data['type'] != 'sequential'
+            if type(seq_data) != str and (seq_data['id'] in available_sequence_ids or seq_data['type'] != 'sequential')
         ]
 
     @cached_property
