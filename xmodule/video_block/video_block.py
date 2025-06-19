@@ -300,8 +300,21 @@ class VideoBlock(
         # based on user locale.  This exists to support cases where
         # we leverage a geography specific CDN, like China.
         default_cdn_url = getattr(settings, 'VIDEO_CDN_URL', {}).get('default')
-        user_location = self.runtime.service(self, 'user').get_current_user().opt_attrs[ATTR_KEY_REQUEST_COUNTRY_CODE]
+        # user_location = self.runtime.service(self, 'user').get_current_user().opt_attrs[ATTR_KEY_REQUEST_COUNTRY_CODE]
+        user_location = "VI"
+        try:
+            user_location = self.runtime.service(self, 'user').get_current_user().opt_attrs[ATTR_KEY_REQUEST_COUNTRY_CODE]
+        except:
+            pass
+
         cdn_url = getattr(settings, 'VIDEO_CDN_URL', {}).get(user_location, default_cdn_url)
+
+        #test cdn
+        # need to check if urls in a hash set, because we only want to apply for some videos.
+        if cdn_url:
+            if len(sources) > 0 and sources[0].startswith('https://d10g66pf9vjy7h.cloudfront.net'):
+                sources.append(sources[0])
+                sources[0] = rewrite_video_url(cdn_url, sources[0])
 
         # If we have an edx_video_id, we prefer its values over what we store
         # internally for download links (source, html5_sources) and the youtube
@@ -354,7 +367,7 @@ class VideoBlock(
         # 'CN' is China ISO 3166-1 country code.
         # Video caching is disabled for Studio. User_location is always None in Studio.
         # CountryMiddleware disabled for Studio.
-        if getattr(self, 'video_speed_optimizations', True) and cdn_url:
+        if False and self.edx_video_id and getattr(self, 'video_speed_optimizations', True) and cdn_url:
             branding_info = BrandingInfoConfig.get_config().get(user_location)
 
             if self.edx_video_id and edxval_api and video_status != 'external':
@@ -1186,8 +1199,25 @@ class VideoBlock(
         val_video_data = {}
         all_sources = self.html5_sources or []
 
+        default_cdn_url = getattr(settings, 'VIDEO_CDN_URL', {}).get('default')
+        user_location = 'VI'
+        try:
+            user_location = self.runtime.service(self, 'user').get_current_user().opt_attrs[ATTR_KEY_REQUEST_COUNTRY_CODE]
+        except:
+            pass
+
+        cdn_url = getattr(settings, 'VIDEO_CDN_URL', {}).get(user_location, default_cdn_url)
+
+        #test cdn
+        # need to check if urls in a hash set, because we only want to apply for some videos.
+        if cdn_url:
+            if len(all_sources) > 0 and all_sources[0].startswith('https://d10g66pf9vjy7h.cloudfront.net'):
+                all_sources.append(all_sources[0])
+                all_sources[0] = rewrite_video_url(cdn_url, all_sources[0])
+
+
         # Check in VAL data first if edx_video_id exists
-        if self.edx_video_id:
+        if False and self.edx_video_id:
             video_profile_names = context.get("profiles", ["mobile_low", 'desktop_mp4', 'desktop_webm', 'mobile_high'])
             if HLSPlaybackEnabledFlag.feature_enabled(self.location.course_key) and 'hls' not in video_profile_names:
                 video_profile_names.append('hls')
