@@ -3,7 +3,9 @@
 {% blocktrans %}You have been enrolled in {{ course_name }} at {{ site_name }} by a member of the course staff. This course will now appear on your {{ site_name }} dashboard.{% endblocktrans %}
 
 {% blocktrans %}To start accessing course materials, please visit {{ course_url }}{% endblocktrans %}
+{% blocktrans %}Instructor can refer to the guide for using the {{ platform_name }} course <a target="_blank" href="https://dlc.hutech.edu.vn/hutech-x-doc">here</a>.{% endblocktrans %}
 
+{% blocktrans %}Learner can refer to the guide for using the {{ platform_name }} course <a target="_blank" href="https://apps.lms.hutech.edu.vn/home/faq?role=student">here</a>.{% endblocktrans %}
 ----
 {% blocktrans %}This email was automatically sent from {{ site_name }} to {{ full_name }}{% endblocktrans %}
 {% endautoescape %}

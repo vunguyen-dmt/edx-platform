@@ -129,6 +129,7 @@ from .utils import (
     set_attribute,
     is_posting_allowed
 )
+from common.djangoapps.student.models import UserProfile
 
 User = get_user_model()
 
@@ -1894,6 +1895,11 @@ def get_course_discussion_user_stats(
 
     course_stats_response = get_course_user_stats(course_key, params)
 
+    for i in course_stats_response["user_stats"]:
+        user_profile = UserProfile.objects.select_related('user').get(user__username=i['username'])
+        fullname = user_profile.name if user_profile else ''
+        i['fullname'] = fullname
+
     if comma_separated_usernames:
         updated_course_stats = add_stats_for_users_with_no_discussion_content(
             course_stats_response["user_stats"],
@@ -1968,6 +1974,8 @@ def add_stats_for_users_with_null_values(course_stats, users_in_course):
     users_with_no_discussion_content = set(user_list) ^ set(users_returned_from_api)
     updated_course_stats = course_stats
     for user in users_with_no_discussion_content:
+        user_profile = UserProfile.objects.select_related('user').get(user__username=user)
+        fullname = user_profile.name if user_profile else ''
         updated_course_stats.append({
             'username': user,
             'threads': None,
@@ -1975,6 +1983,7 @@ def add_stats_for_users_with_null_values(course_stats, users_in_course):
             'responses': None,
             'active_flags': None,
             'inactive_flags': None,
+            'fullname': fullname,
         })
     updated_course_stats = sorted(updated_course_stats, key=lambda d: len(d['username']))
     return updated_course_stats

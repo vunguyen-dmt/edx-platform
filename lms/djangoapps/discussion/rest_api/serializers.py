@@ -12,7 +12,7 @@ from django.urls import reverse
 from django.utils.html import strip_tags
 from rest_framework import serializers
 
-from common.djangoapps.student.models import get_user_by_username_or_email
+from common.djangoapps.student.models import get_user_by_username_or_email, UserProfile
 from common.djangoapps.student.roles import GlobalStaff
 from lms.djangoapps.discussion.django_comment_client.base.views import track_thread_lock_unlock_event, \
     track_thread_edited_event, track_comment_edited_event, track_forum_response_mark_event
@@ -159,6 +159,7 @@ class _ContentSerializer(serializers.Serializer):
     last_edit = serializers.SerializerMethodField(required=False)
     edit_reason_code = serializers.CharField(required=False, validators=[validate_edit_reason_code])
     edit_by_label = serializers.SerializerMethodField(required=False)
+    author_fullname = serializers.SerializerMethodField()
 
     non_updatable_fields = set()
 
@@ -310,6 +311,10 @@ class _ContentSerializer(serializers.Serializer):
             last_edit = edit_history[-1]
             return self._get_user_label_from_username(last_edit.get('editor_username'))
 
+    def get_author_fullname(self, obj):
+        user_profile = UserProfile.objects.get(user_id=int(obj["user_id"]))
+        user_fullname = user_profile.name if user_profile else ''
+        return None if self._is_anonymous(obj) else user_fullname
 
 class ThreadSerializer(_ContentSerializer):
     """
@@ -767,6 +772,7 @@ class DiscussionRolesMemberSerializer(serializers.Serializer):
     first_name = serializers.CharField()
     last_name = serializers.CharField()
     group_name = serializers.SerializerMethodField()
+    fullname = serializers.CharField()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -831,6 +837,7 @@ class UserStatsSerializer(serializers.Serializer):
     active_flags = serializers.IntegerField()
     inactive_flags = serializers.IntegerField()
     username = serializers.CharField()
+    fullname = serializers.CharField()
 
     def to_representation(self, instance):
         """Remove flag counts if user is not privileged."""
