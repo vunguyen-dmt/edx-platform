@@ -67,7 +67,8 @@ def howitworks(request):
     Deprecated logged-out home page. New behavior is just login w/ redirect to studio course list.
     """
     if use_legacy_logged_out_home() and not request.user.is_authenticated:
-        return render_to_response('howitworks.html', {})
+        # return render_to_response('howitworks.html', {})
+        return login_redirect_to_lms(request)
     return redirect('/home/')
 
 
