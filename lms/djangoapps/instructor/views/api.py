@@ -2084,7 +2084,7 @@ class RescoreProblem(DeveloperErrorViewMixin, APIView):
 
         can_not_manage_grade = CourseRole(role='staff_can_not_manage_grade', course_key=course_id).can_not_manage_grade(request.user)
         if can_not_manage_grade:
-            log.error(f"can_not_manage_grade case rescore_problem: user: {request.user.username}, course {course_id}, problem_to_reset {request.POST.get('problem_to_reset')}, unique_student_identifier {request.POST.get('unique_student_identifier')}")Add commentMore actions
+            log.error(f"can_not_manage_grade case rescore_problem: user: {request.user.username}, course {course_id}, problem_to_reset {request.POST.get('problem_to_reset')}, unique_student_identifier {request.POST.get('unique_student_identifier')}")
             return HttpResponseBadRequest('Requires instructor access.')
 
         course = get_course_with_access(request.user, 'staff', course_id)
