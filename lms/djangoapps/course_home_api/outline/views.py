@@ -37,7 +37,7 @@ from lms.djangoapps.course_home_api.outline.serializers import (
 from lms.djangoapps.course_home_api.utils import get_course_or_403
 from lms.djangoapps.courseware.access import has_access
 from lms.djangoapps.courseware.context_processor import user_timezone_locale_prefs
-from lms.djangoapps.courseware.courses import get_course_date_blocks, get_course_info_section
+from lms.djangoapps.courseware.courses import get_course_blocks_completion_summary, get_course_date_blocks, get_course_info_section
 from lms.djangoapps.courseware.date_summary import TodaysDate
 from lms.djangoapps.courseware.masquerade import is_masquerading, setup_masquerade
 from lms.djangoapps.courseware.toggles import courseware_disable_navigation_sidebar_blocks_caching
@@ -61,7 +61,11 @@ from openedx.features.discounts.utils import generate_offer_data
 from xblock.core import XBlock
 from xblock.completable import XBlockCompletionMode
 from xmodule.course_block import COURSE_VISIBILITY_PUBLIC, COURSE_VISIBILITY_PUBLIC_OUTLINE  # lint-amnesty, pylint: disable=wrong-import-order
-
+import json
+from common.djangoapps.student.roles import (
+    GlobalStaff
+)
+from django.contrib.auth.models import User
 
 class UnableToDismissWelcomeMessage(APIException):
     status_code = 400
@@ -382,7 +386,6 @@ class OutlineTabView(RetrieveAPIView):
         # Adding this header should be moved to global middleware, not just this endpoint
         return expose_header('Date', response)
 
-
 class CourseNavigationBlocksView(RetrieveAPIView):
     """
     **Use Cases**
@@ -488,6 +491,92 @@ class CourseNavigationBlocksView(RetrieveAPIView):
         serializer = self.get_serializer_class()(course_blocks, context=context)
 
         return Response(serializer.data)
+
+    def post(self, request, *args, **kwargs):
+        result = {
+            "data": []
+        }
+
+        if not GlobalStaff().has_user(request.user):
+            return Response(result)
+
+        request_body = json.loads(request.body.decode('utf8'))
+        details = request_body["details"]
+        user_ids = request_body["user_ids"]
+
+        if len(user_ids) > 30:
+            return Response(result)
+
+        course_key_string = kwargs.get('course_key_string')
+        course_key = CourseKey.from_string(course_key_string)
+
+        if not details:
+            for user_id in user_ids:
+                user = User.objects.get(id=user_id)
+                result["data"].append({
+                    "user_id": user_id,
+                    "data": get_course_blocks_completion_summary(course_key, user)
+                })
+
+            return Response(result)
+        else:
+            for user_id in user_ids:
+                user = User.objects.get(id=user_id)
+                request.user = user
+                result["data"].append({
+                    "user_id": user_id,
+                    "data": self.get_user_progress_details(request, user, course_key_string)
+                })
+
+        return Response(result)
+
+    def get_user_progress_details(self, request, user, course_key_string):
+        """
+        Get the visible course blocks (from course to vertical types) for the given course.
+        """
+        course_key = CourseKey.from_string(course_key_string)
+        course = get_course_or_403(user, 'load', course_key, check_if_enrolled=False)
+        staff_access = has_access(user, 'staff', course_key)
+        user_is_masquerading = False
+        allow_anonymous = COURSE_ENABLE_UNENROLLED_ACCESS_FLAG.is_enabled(course_key)
+        allow_public = allow_anonymous and course.course_visibility == COURSE_VISIBILITY_PUBLIC
+        allow_public_outline = allow_anonymous and course.course_visibility == COURSE_VISIBILITY_PUBLIC_OUTLINE
+        enrollment = CourseEnrollment.get_enrollment(user, course_key)
+        try:
+            user_cohort = get_cohort(user, course_key, use_cached=True)
+        except ValueError:
+            user_cohort = None
+        cache_key = self.COURSE_BLOCKS_CACHE_KEY_TEMPLATE.format(
+            course_key_string=course_key_string,
+            course_version=str(course.course_version),
+            user_id=user.id,
+            enrollment_mode=getattr(enrollment, 'mode', ''),
+            user_cohort_id=getattr(user_cohort, 'id', ''),
+            allow_public=allow_public,
+            allow_public_outline=allow_public_outline,
+            is_masquerading=user_is_masquerading,
+        )
+        if navigation_sidebar_caching_is_disabled := courseware_disable_navigation_sidebar_blocks_caching():
+            course_blocks = None
+        else:
+            course_blocks = cache.get(cache_key)
+        if not course_blocks:
+            if getattr(enrollment, 'is_active', False) or bool(staff_access):
+                course_blocks = get_course_outline_block_tree(request, course_key_string, user)
+            elif allow_public_outline or allow_public or user_is_masquerading:
+                course_blocks = get_course_outline_block_tree(request, course_key_string, None)
+            if not navigation_sidebar_caching_is_disabled:
+                cache.set(cache_key, course_blocks, self.COURSE_BLOCKS_CACHE_TIMEOUT)
+        course_blocks = self.filter_inaccessible_blocks(course_blocks, course_key)
+        course_blocks = self.mark_complete_recursive(course_blocks)
+        context = self.get_serializer_context()
+        context.update({
+            'include_vertical': True,
+            'extra_fields': ['special_exam_info', 'completion_stat'],
+            'enable_prerequisite_block_type': True,
+        })
+        serializer = self.get_serializer_class()(course_blocks, context=context)
+        return serializer.data
 
     def filter_inaccessible_blocks(self, course_blocks, course_key):
         """
