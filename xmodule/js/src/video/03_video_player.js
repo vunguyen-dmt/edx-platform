@@ -445,11 +445,13 @@
                     oldTime = this.videoPlayer.currentTime;
                 // After the user seeks, the video will start playing from
                 // the sought point, and stop playing at the end.
-                this.videoPlayer.goToStartTime = false;
+                if (time < oldTime) {
+                    this.videoPlayer.goToStartTime = false;
 
-                this.videoPlayer.seekTo(time);
+                    this.videoPlayer.seekTo(time);
 
-                this.el.trigger('seek', [time, oldTime, type]);
+                    this.el.trigger('seek', [time, oldTime, type]);
+                }
             }
 
             function seekTo(time) {
