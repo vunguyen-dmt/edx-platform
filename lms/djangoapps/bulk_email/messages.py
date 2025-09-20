@@ -83,6 +83,7 @@ class ACEEmail(CourseEmailMessage):
             language=email_context['course_language'],
             user_context={"name": email_context['name']},
         )
+
         self.message = message
 
     def send(self):
