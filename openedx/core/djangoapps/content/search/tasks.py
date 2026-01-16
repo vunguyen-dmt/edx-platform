@@ -31,6 +31,12 @@ def upsert_xblock_index_doc(usage_key_str: str, recursive: bool) -> None:
     """
     usage_key = UsageKey.from_string(usage_key_str)
 
+    # not upsert for course blocks because it take too much time
+    # Only process library blocks (types starting with 'library')
+    block_type = usage_key.block_type
+    if not isinstance(block_type, str) or not block_type.startswith('library'):
+        return
+
     log.info("Updating content index document for XBlock with id: %s", usage_key)
 
     api.upsert_xblock_index_doc(usage_key, recursive)

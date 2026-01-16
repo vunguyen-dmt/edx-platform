@@ -224,6 +224,8 @@ def _parse_time(time_isoformat):
 @set_code_owner_attribute
 def update_search_index(course_id, triggered_time_isoformat):
     """ Updates course search index. """
+    return
+    
     try:
         course_key = CourseKey.from_string(course_id)
 
