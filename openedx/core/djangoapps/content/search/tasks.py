@@ -34,6 +34,9 @@ def upsert_xblock_index_doc(usage_key_str: str, recursive: bool) -> None:
     # not upsert for course blocks because it take too much time
     # Only process library blocks (types starting with 'library')
     block_type = usage_key.block_type
+  
+    log.info("upsert_xblock_index_doc 22222222: %s", block_type)
+
     if not isinstance(block_type, str) or not block_type.startswith('library'):
         return
 

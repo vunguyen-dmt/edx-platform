@@ -603,6 +603,11 @@ def upsert_xblock_index_doc(usage_key: UsageKey, recursive: bool = True) -> None
     xblock = modulestore().get_item(usage_key)
     xblock_type = xblock.scope_ids.block_type
 
+
+    log.info(
+      f"upsert_xblock_index_doc 11111111: {xblock_type}"
+    )
+
     if not isinstance(xblock_type, str) or not xblock_type.startswith('library'):
         return
 
