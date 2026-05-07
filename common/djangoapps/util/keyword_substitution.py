@@ -42,12 +42,18 @@ def substitute_keywords(string, user_id, context):
     Functions stored in KEYWORD_FUNCTION_MAP must return a replacement string.
     """
 
+    user = User.objects.get(id=user_id)
+    username = ''
+    if user:
+        username = user.username
+
     # do this lazily to avoid unneeded database hits
     KEYWORD_FUNCTION_MAP = {
-        '%%USER_ID%%': lambda: anonymous_id_from_user_id(user_id),
+        '%%USER_ID%%': lambda: anonymous_id_for_user(user, None),
         '%%USER_FULLNAME%%': lambda: context.get('name'),
         '%%COURSE_DISPLAY_NAME%%': lambda: context.get('course_title'),
         '%%COURSE_END_DATE%%': lambda: context.get('course_end_date'),
+        '%%USER_USERNAME%%': lambda: username,
     }
 
     for key in KEYWORD_FUNCTION_MAP.keys():  # lint-amnesty, pylint: disable=consider-iterating-dictionary
