@@ -67,7 +67,7 @@ from common.djangoapps.student.models import (
     get_user_by_username_or_email,
     is_email_retired,
 )
-from common.djangoapps.student.roles import CourseFinanceAdminRole, CourseSalesAdminRole
+from common.djangoapps.student.roles import CourseFinanceAdminRole, CourseSalesAdminRole, CourseRole
 from common.djangoapps.util.file import (
     FileValidationException,
     course_and_time_based_filename_generator,
@@ -1965,6 +1965,11 @@ class ResetStudentAttempts(DeveloperErrorViewMixin, APIView):
 
         all_students = serializer_data.validated_data.get('all_students')
 
+        can_not_manage_grade = CourseRole(role='staff_can_not_manage_grade', course_key=course_id).can_not_manage_grade(request.user)
+        if can_not_manage_grade:
+            log.error(f"can_not_manage_grade case reset_student_attempts: user: {request.user.username}, course {course_id}, problem_to_reset {request.POST.get('problem_to_reset')}, unique_student_identifier {request.POST.get('unique_student_identifier')}")
+            return HttpResponseForbidden("Requires instructor access.")
+
         if all_students and not has_access(request.user, 'instructor', course):
             return HttpResponseForbidden("Requires instructor access.")
 
@@ -2132,6 +2137,12 @@ class RescoreProblem(DeveloperErrorViewMixin, APIView):
         """
 
         course_id = CourseKey.from_string(course_id)
+
+        can_not_manage_grade = CourseRole(role='staff_can_not_manage_grade', course_key=course_id).can_not_manage_grade(request.user)
+        if can_not_manage_grade:
+            log.error(f"can_not_manage_grade case rescore_problem: user: {request.user.username}, course {course_id}, problem_to_reset {request.POST.get('problem_to_reset')}, unique_student_identifier {request.POST.get('unique_student_identifier')}")
+            return HttpResponseBadRequest('Requires instructor access.')
+
         course = get_course_with_access(request.user, 'staff', course_id)
 
         serializer_data = self.serializer_class(data=request.data)
@@ -2227,6 +2238,12 @@ class OverrideProblemScoreView(DeveloperErrorViewMixin, APIView):
             return HttpResponseBadRequest(reason=serializer_data.errors)
 
         course_key = CourseKey.from_string(course_id)
+
+        can_not_manage_grade = CourseRole(role='staff_can_not_manage_grade', course_key=course_key).can_not_manage_grade(request.user)
+        if can_not_manage_grade:
+            log.error(f"can_not_manage_grade case override_problem_score: user: {request.user.username}, course {course_id}, problem_to_reset {request.POST.get('problem_to_reset')}, unique_student_identifier {request.POST.get('unique_student_identifier')}")
+            return HttpResponseBadRequest('Requires instructor access.')
+
         problem_to_reset = serializer_data.validated_data['problem_to_reset']
         score = serializer_data.validated_data['score']
         student = serializer_data.validated_data['unique_student_identifier']

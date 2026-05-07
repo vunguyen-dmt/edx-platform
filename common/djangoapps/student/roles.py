@@ -316,6 +316,17 @@ class RoleBase(AccessRole):
         """
         return CourseAccessRole.objects.filter(user=user, role=self._role_name).values_list('org', flat=True)
 
+    def can_not_manage_grade(self, user):
+        """
+        If a user has both staff and beta testers roles then they can not manage grades.
+        update, post, delete studuent grades, submissions.
+        """
+        if not (user.is_authenticated or user.is_active):
+            return True
+        if not hasattr(user, '_roles'):
+            user._roles = RoleCache(user)
+        return user._roles.has_role('staff', self.course_key, self.org) and user._roles.has_role('beta_testers', self.course_key, self.org)
+
 
 class CourseRole(RoleBase):
     """
