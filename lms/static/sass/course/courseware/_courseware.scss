@@ -662,6 +662,37 @@ html.video-fullscreen {
       }
     }
 
+    .exam-progress-footer {
+      border: 1px solid black;
+      border-radius: 6px;
+      padding: 0.5rem;
+      margin-top: 20px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      line-height: 1.6;
+
+      .exam-progress-subsection {
+        font-weight: 600;
+        color: #212529;
+        margin-bottom: 4px;
+      }
+
+      .exam-progress-unit {
+        color: #212529;
+        margin-bottom: 4px;
+      }
+
+      .exam-progress-mc {
+        color: #212529;
+        margin-bottom: 8px;
+      }
+
+      .exam-progress-note {
+        color: #707070;
+        font-size: 13px;
+      }
+    }
+
     section.xblock-student_view-wrapper div.vert-mod > div,
     section.xblock-public_view-wrapper div.vert-mod > div {
       border-bottom: none;

@@ -141,6 +141,8 @@ class VerticalBlock(
         cta_service = self.runtime.service(self, 'call_to_action')
         vertical_banner_ctas = cta_service.get_ctas(self, 'vertical_banner', completed) if cta_service else []
 
+        exam_progress = self._get_exam_progress(child_blocks, view)
+
         fragment_context = {
             'items': contents,
             'xblock_context': context,
@@ -151,6 +153,7 @@ class VerticalBlock(
             'has_assignments': completed is not None,
             'subsection_format': context.get('format', ''),
             'vertical_banner_ctas': vertical_banner_ctas,
+            'exam_progress': exam_progress,
         }
 
         if view == STUDENT_VIEW:
@@ -335,3 +338,59 @@ class VerticalBlock(
                 all_complete = True
 
         return all_complete
+
+    def _get_exam_progress(self, child_blocks, view):
+        """
+        Returns exam progress data for graded subsections in STUDENT_VIEW.
+
+        Only shown for authenticated students on graded content.
+        Returns None if not applicable.
+        """
+        if view != STUDENT_VIEW:
+            return None
+
+        if not getattr(self, 'graded', False):
+            return None
+
+        mc_total = 0
+        mc_submitted = 0
+        for child in child_blocks:
+            problems = []
+            if child.location.block_type == 'problem':
+                problems.append(child)
+            elif child.location.block_type in ('library_content', 'itembank') and child.has_children:
+                problems.extend(
+                    grandchild for grandchild in child.get_children()
+                    if grandchild.location.block_type == 'problem'
+                )
+            for problem in problems:
+                mc_total += 1
+                if getattr(problem, 'done', None):
+                    mc_submitted += 1
+
+        if mc_total == 0:
+            return None
+
+        unit_position = None
+        unit_total = None
+        subsection_name = None
+        try:
+            parent = self.get_parent()  # pylint: disable=no-member
+            if parent:
+                siblings = parent.children
+                unit_total = len(siblings)
+                subsection_name = parent.display_name_with_default
+                for i, sibling_key in enumerate(siblings):
+                    if sibling_key == self.location:  # pylint: disable=no-member
+                        unit_position = i + 1
+                        break
+        except Exception:  # pylint: disable=broad-except
+            log.warning("Could not determine unit position for exam progress footer.")
+
+        return {
+            'mc_total': mc_total,
+            'mc_submitted': mc_submitted,
+            'unit_position': unit_position,
+            'unit_total': unit_total,
+            'subsection_name': subsection_name,
+        }

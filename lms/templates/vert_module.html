@@ -3,7 +3,7 @@
 <%namespace name='static' file='/static_content.html'/>
 
 <%!
-from django.utils.translation import gettext as _
+from django.utils.translation import gettext as _, pgettext
 
 from openedx.core.djangolib.markup import HTML
 %>
@@ -68,6 +68,32 @@ from openedx.core.djangolib.markup import HTML
   %endif
 % endfor
 </div>
+
+% if exam_progress:
+  <div class="exam-progress-footer" data-mc-submitted="${exam_progress['mc_submitted']}" data-mc-total="${exam_progress['mc_total']}">
+    % if exam_progress['subsection_name']:
+      <div class="exam-progress-subsection">
+        % if subsection_format:
+          ${pgettext("exam_progress", "You are in {subsection_name} [{assignment_type}]").format(subsection_name=exam_progress['subsection_name'], assignment_type=subsection_format)}
+        % else:
+          ${pgettext("exam_progress", "You are in {subsection_name}").format(subsection_name=exam_progress['subsection_name'])}
+        % endif
+      </div>
+    % endif
+    % if exam_progress['unit_position'] is not None and exam_progress['unit_total'] is not None:
+      <div class="exam-progress-unit">
+        ${pgettext("exam_progress", "Unit {position} of {total}").format(position=exam_progress['unit_position'], total=exam_progress['unit_total'])}
+      </div>
+    % endif
+    <div class="exam-progress-mc">
+      ${pgettext("exam_progress", "Multiple choice questions")} <strong>${pgettext("exam_progress", "on this page")}</strong>: ${pgettext("exam_progress", "{submitted} of {total} submitted").format(submitted=exam_progress['mc_submitted'], total=exam_progress['mc_total'])}
+    </div>
+    <div class="exam-progress-note">
+      ${pgettext("exam_progress", "Selecting choices is not enough. You must click the Submit button for each question to be graded.")}
+      ${pgettext("exam_progress", "This exam may contain other types of questions. Please review your exam carefully.")}
+    </div>
+  </div>
+% endif
 
 % if reset_button:
   <div class="problem-reset-btn-wrapper">
