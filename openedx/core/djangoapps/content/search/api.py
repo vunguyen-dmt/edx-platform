@@ -333,6 +333,14 @@ def is_meilisearch_enabled() -> bool:
     return False
 
 
+def is_studio_course_index_enabled() -> bool:
+    """
+    Returns whether course blocks should be indexed in the Studio search index.
+    Controlled by ENABLE_COURSEWARE_INDEX feature flag.
+    """
+    return settings.FEATURES.get('ENABLE_COURSEWARE_INDEX', False)
+
+
 def reset_index(status_cb: Callable[[str], None] | None = None) -> None:
     """
     Reset the Meilisearch index, deleting all documents and reconfiguring it
@@ -450,9 +458,14 @@ def rebuild_index(status_cb: Callable[[str], None] | None = None, incremental=Fa
     ]
     num_libraries = len(lib_keys)
 
-    # Get the list of courses
-    status_cb("Counting courses...")
-    num_courses = CourseOverview.objects.count()
+    # Get the list of courses (skip if course indexing is disabled)
+    index_courses = is_studio_course_index_enabled()
+    if index_courses:
+        status_cb("Counting courses...")
+        num_courses = CourseOverview.objects.count()
+    else:
+        status_cb("Course indexing is disabled (ENABLE_COURSEWARE_INDEX=False). Skipping courses.")
+        num_courses = 0
 
     # Some counters so we can track our progress as indexing progresses:
     num_libs_skipped = len(keys_indexed)
@@ -587,23 +600,25 @@ def rebuild_index(status_cb: Callable[[str], None] | None = None, incremental=Fa
             num_contexts_done += 1
 
         ############## Courses ##############
-        status_cb("Indexing courses...")
-        # To reduce memory usage on large instances, split up the CourseOverviews into pages of 1,000 courses:
+        if index_courses:
+            status_cb("Indexing courses...")
+            # To reduce memory usage on large instances, split up the CourseOverviews into pages of 1,000 courses:
 
-        paginator = Paginator(CourseOverview.objects.only('id', 'display_name'), 1000)
-        for p in paginator.page_range:
-            for course in paginator.page(p).object_list:
-                status_cb(
-                    f"{num_contexts_done + 1}/{num_contexts}. Now indexing course {course.display_name} ({course.id})"
-                )
-                if course.id in keys_indexed:
+            paginator = Paginator(CourseOverview.objects.only('id', 'display_name'), 1000)
+            for p in paginator.page_range:
+                for course in paginator.page(p).object_list:
+                    status_cb(
+                        f"{num_contexts_done + 1}/{num_contexts}. "
+                        f"Now indexing course {course.display_name} ({course.id})"
+                    )
+                    if course.id in keys_indexed:
+                        num_contexts_done += 1
+                        continue
+                    course_docs = index_course(course.id, index_name)
+                    if incremental:
+                        IncrementalIndexCompleted.objects.get_or_create(context_key=course.id)
                     num_contexts_done += 1
-                    continue
-                course_docs = index_course(course.id, index_name)
-                if incremental:
-                    IncrementalIndexCompleted.objects.get_or_create(context_key=course.id)
-                num_contexts_done += 1
-                num_blocks_done += len(course_docs)
+                    num_blocks_done += len(course_docs)
 
     IncrementalIndexCompleted.objects.all().delete()
     status_cb(f"Done! {num_blocks_done} blocks indexed across {num_contexts_done} courses, collections and libraries.")

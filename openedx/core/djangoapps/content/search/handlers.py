@@ -7,7 +7,7 @@ import logging
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
 from opaque_keys import InvalidKeyError
-from opaque_keys.edx.keys import UsageKey
+from opaque_keys.edx.keys import CourseKey, UsageKey
 from opaque_keys.edx.locator import LibraryCollectionLocator, LibraryContainerLocator
 from openedx_events.content_authoring.data import (
     ContentLibraryData,
@@ -47,6 +47,7 @@ from openedx.core.djangoapps.content_libraries import api as lib_api
 from xmodule.modulestore.django import SignalHandler
 
 from .api import (
+    is_studio_course_index_enabled,
     only_if_meilisearch_enabled,
     upsert_content_object_tags_index_doc,
     upsert_item_collections_index_docs,
@@ -87,6 +88,9 @@ def xblock_created_handler(**kwargs) -> None:
     """
     Create the index for the XBlock
     """
+    if not is_studio_course_index_enabled():
+        return
+
     xblock_info = kwargs.get("xblock_info", None)
     if not xblock_info or not isinstance(xblock_info, XBlockData):  # pragma: no cover
         log.error("Received null or incorrect data for event")
@@ -104,6 +108,9 @@ def xblock_updated_handler(**kwargs) -> None:
     """
     Update the index for the XBlock and its children
     """
+    if not is_studio_course_index_enabled():
+        return
+
     xblock_info = kwargs.get("xblock_info", None)
     if not xblock_info or not isinstance(xblock_info, XBlockData):  # pragma: no cover
         log.error("Received null or incorrect data for event")
@@ -121,6 +128,9 @@ def xblock_deleted_handler(**kwargs) -> None:
     """
     Delete the index for the XBlock
     """
+    if not is_studio_course_index_enabled():
+        return
+
     xblock_info = kwargs.get("xblock_info", None)
     if not xblock_info or not isinstance(xblock_info, XBlockData):  # pragma: no cover
         log.error("Received null or incorrect data for event")
@@ -276,6 +286,9 @@ def content_object_associations_changed_handler(**kwargs) -> None:
                 log.error("Received invalid content object id")
                 return
 
+    if isinstance(getattr(opaque_key, 'context_key', None), CourseKey) and not is_studio_course_index_enabled():
+        return
+
     # This event's changes may contain both "tags" and "collections", but this will happen rarely, if ever.
     # So we allow a potential double "upsert" here.
     if not content_object.changes or "tags" in content_object.changes:
@@ -356,6 +369,9 @@ def handle_reindex_on_signal(**kwargs):
     """
     Automatically update Meiliesearch index for course in database on new import or rerun.
     """
+    if not is_studio_course_index_enabled():
+        return
+
     course_data = kwargs.get("course", None)
     if not course_data or not isinstance(course_data, CourseData):
         log.error("Received null or incorrect data for event")
@@ -370,4 +386,7 @@ def listen_for_course_delete(sender, course_key, **kwargs):  # pylint: disable=u
     Catches the signal that a course has been deleted
     and removes its entry from the Course About Search index.
     """
+    if not is_studio_course_index_enabled():
+        return
+
     delete_course_index_docs.delay(str(course_key))
