@@ -143,6 +143,10 @@ class VerticalBlock(
 
         exam_progress = self._get_exam_progress(child_blocks, view)
 
+        summary_enabled = False
+        if view == STUDENT_VIEW and not exam_progress and getattr(settings, 'GA_EXTENSIONS_ENABLE_UNIT_SUMMARY', False):
+            summary_enabled = self._is_summary_enabled()
+
         fragment_context = {
             'items': contents,
             'xblock_context': context,
@@ -154,6 +158,8 @@ class VerticalBlock(
             'subsection_format': context.get('format', ''),
             'vertical_banner_ctas': vertical_banner_ctas,
             'exam_progress': exam_progress,
+            'summary_enabled': summary_enabled,
+            'unit_id': str(self.location) if summary_enabled else None,
         }
 
         if view == STUDENT_VIEW:
@@ -394,3 +400,18 @@ class VerticalBlock(
             'unit_total': unit_total,
             'subsection_name': subsection_name,
         }
+
+    def _is_summary_enabled(self):
+        """Check if AI summary is enabled for this unit via ga_extensions_unit_summary."""
+        from django.core.cache import cache
+        try:
+            from openedx_extensions.models import ExtensionUnitSummary
+            cache_key = f"unit_summary_enabled:{self.location}"
+            cached = cache.get(cache_key)
+            if cached is not None:
+                return cached
+            enabled = ExtensionUnitSummary.objects.filter(unit_id=str(self.location)).exists()
+            cache.set(cache_key, enabled, 300)
+            return enabled
+        except Exception:
+            return False

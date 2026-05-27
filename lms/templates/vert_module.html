@@ -69,6 +69,84 @@ from openedx.core.djangolib.markup import HTML
 % endfor
 </div>
 
+% if summary_enabled:
+  <style>
+    .unit-summary-section {
+      border: 1px solid #ddd;
+      padding: 15px;
+      border-radius: 4px;
+      margin-top: 15px;
+    }
+    .unit-summary-btn {
+      background: transparent !important;
+      border-radius: 4px !important;
+      box-shadow: none !important;
+    }
+    .unit-summary-text {
+      margin-top: 15px;
+    }
+  </style>
+  <div class="unit-summary-section" data-unit-id="${unit_id}">
+    <button type="button" class="btn btn-outline-primary unit-summary-btn">
+      ${_('Summarize this unit')}
+    </button>
+    <div class="unit-summary-content" style="display:none;">
+      <div class="unit-summary-loading" style="display:none;">
+        ${_('Generating summary...')}
+      </div>
+      <div class="unit-summary-text"></div>
+      <div class="unit-summary-error" style="display:none;"></div>
+    </div>
+  </div>
+  <script>
+  (function() {
+    var section = document.querySelector('.unit-summary-section');
+    var btn = section.querySelector('.unit-summary-btn');
+    var content = section.querySelector('.unit-summary-content');
+    var loading = section.querySelector('.unit-summary-loading');
+    var textEl = section.querySelector('.unit-summary-text');
+    var errorEl = section.querySelector('.unit-summary-error');
+    var unitId = section.getAttribute('data-unit-id');
+    var fetched = false;
+    var labelShow = '${_("Summarize this unit")}';
+    var labelHide = '${_("Hide summary")}';
+
+    btn.addEventListener('click', function() {
+      if (fetched) {
+        var visible = content.style.display !== 'none';
+        content.style.display = visible ? 'none' : 'block';
+        btn.textContent = visible ? labelShow : labelHide;
+        return;
+      }
+      content.style.display = 'block';
+      loading.style.display = 'block';
+      errorEl.style.display = 'none';
+      textEl.textContent = '';
+
+      fetch('/api/ga-extensions/v1/unit-summary/' + encodeURIComponent(unitId) + '/', {
+        credentials: 'include',
+        headers: {'Accept': 'application/json'}
+      })
+      .then(function(resp) {
+        if (!resp.ok) throw new Error(resp.status);
+        return resp.json();
+      })
+      .then(function(data) {
+        loading.style.display = 'none';
+        textEl.innerHTML = data.summary;
+        fetched = true;
+        btn.textContent = labelHide;
+      })
+      .catch(function(err) {
+        loading.style.display = 'none';
+        errorEl.style.display = 'block';
+        errorEl.textContent = '${_("Failed to load summary. Please try again.")}';
+      });
+    });
+  })();
+  </script>
+% endif
+
 % if exam_progress:
   <div class="exam-progress-footer" data-mc-submitted="${exam_progress['mc_submitted']}" data-mc-total="${exam_progress['mc_total']}">
     % if exam_progress['subsection_name']:
