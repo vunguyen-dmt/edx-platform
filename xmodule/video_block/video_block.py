@@ -398,7 +398,10 @@ class _BuiltInVideoBlock(
         # Video caching is disabled for Studio. User_location is always None in Studio.
         # CountryMiddleware disabled for Studio.
         if getattr(self, 'video_speed_optimizations', True) and cdn_url:
-            branding_info = BrandingInfoConfig.get_config().get(user_location)
+            try:
+                branding_info = BrandingInfoConfig.get_config().get(user_location)
+            except LookupError:
+                branding_info = None
 
             if self.edx_video_id and edxval_api and video_status != 'external':
                 for index, source_url in enumerate(sources):
