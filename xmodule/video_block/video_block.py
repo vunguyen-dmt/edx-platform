@@ -346,6 +346,12 @@ class _BuiltInVideoBlock(
 
         sources = _build_cdn_fallback_sources(sources)
 
+        if cdn_url:
+            for index, source_url in enumerate(sources):
+                new_url = rewrite_video_url(cdn_url, source_url)
+                if new_url:
+                    sources[index] = new_url
+
         # If we have an edx_video_id, we prefer its values over what we store
         # internally for download links (source, html5_sources) and the youtube
         # stream.
@@ -402,12 +408,6 @@ class _BuiltInVideoBlock(
                 branding_info = BrandingInfoConfig.get_config().get(user_location)
             except LookupError:
                 branding_info = None
-
-            if self.edx_video_id and edxval_api and video_status != 'external':
-                for index, source_url in enumerate(sources):
-                    new_url = rewrite_video_url(cdn_url, source_url)
-                    if new_url:
-                        sources[index] = new_url
 
         # If there was no edx_video_id, or if there was no download specified
         # for it, we fall back on whatever we find in the VideoBlock.
