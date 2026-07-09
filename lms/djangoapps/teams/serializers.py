@@ -63,10 +63,16 @@ class UserMembershipSerializer(serializers.ModelSerializer):
         ),
         expanded_serializer=UserReadOnlySerializer(configuration=profile_configuration),
     )
+    full_name = serializers.SerializerMethodField()
+
+    def get_full_name(self, obj):
+        """Return the member's profile name, or empty string if no profile exists."""
+        profile = getattr(obj.user, "profile", None)
+        return profile.name if profile else ""
 
     class Meta:
         model = CourseTeamMembership
-        fields = ("user", "date_joined", "last_activity_at")
+        fields = ("user", "full_name", "date_joined", "last_activity_at")
         read_only_fields = ("date_joined", "last_activity_at")
 
 

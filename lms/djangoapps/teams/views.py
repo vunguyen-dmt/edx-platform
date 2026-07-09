@@ -521,7 +521,9 @@ class TeamsListView(ExpandableFieldViewMixin, GenericAPIView):
         # hide private_managed courses from non-staff users that aren't members of those teams
         excluded_private_team_ids = self._get_private_team_ids_to_exclude(course_block)
 
-        queryset = CourseTeam.objects.filter(**result_filter).exclude(team_id__in=excluded_private_team_ids)
+        queryset = CourseTeam.objects.filter(**result_filter).exclude(
+            team_id__in=excluded_private_team_ids
+        ).prefetch_related('membership__user__profile')
         order_by_input = request.query_params.get('order_by', 'name')
         if order_by_input not in ordering_schemes:
             return Response(
