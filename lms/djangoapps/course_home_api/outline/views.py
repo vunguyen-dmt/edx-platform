@@ -1,8 +1,11 @@
 """
 Outline Tab Views
 """
+import logging
 from datetime import datetime, timezone
 from functools import cached_property
+
+log = logging.getLogger(__name__)
 
 from completion.exceptions import UnavailableCompletionData  # lint-amnesty, pylint: disable=wrong-import-order
 from completion.models import BlockCompletion
@@ -47,6 +50,7 @@ from lms.djangoapps.courseware.views.views import get_cert_data
 from lms.djangoapps.grades.course_grade_factory import CourseGradeFactory
 from lms.djangoapps.utils import OptimizelyClient
 from openedx.core.djangoapps.content.learning_sequences.api import get_user_course_outline
+from openedx.core.djangoapps.content.learning_sequences.data import CourseOutlineData
 from openedx.core.djangoapps.content.course_overviews.api import get_course_overview_or_404
 from openedx.core.djangoapps.course_groups.cohorts import get_cohort
 from openedx.core.lib.api.authentication import BearerAuthenticationAllowInactiveUser
@@ -308,9 +312,25 @@ class OutlineTabView(RetrieveAPIView):
         # The long term goal is to remove the Course Blocks API call entirely,
         # so this is a tiny first step in that migration.
         if course_blocks:
-            user_course_outline = get_user_course_outline(
-                course_key, request.user, datetime.now(tz=timezone.utc)
-            )
+            try:
+                user_course_outline = get_user_course_outline(
+                    course_key, request.user, datetime.now(tz=timezone.utc)
+                )
+            except CourseOutlineData.DoesNotExist:
+                regen_cache_key = f"outline_regen:{course_key}"
+                if cache.get(regen_cache_key):
+                    raise
+                cache.set(regen_cache_key, True, 3600)
+                try:
+                    from cms.djangoapps.contentstore.outlines import update_outline_from_modulestore
+                    update_outline_from_modulestore(course_key)
+                    log.info("Auto-regenerated course outline for %s", course_key)
+                except Exception:
+                    log.exception("Failed to auto-regenerate course outline for %s", course_key)
+                    raise
+                user_course_outline = get_user_course_outline(
+                    course_key, request.user, datetime.now(tz=timezone.utc)
+                )
             available_seq_ids = {str(usage_key) for usage_key in user_course_outline.sequences}
 
             available_section_ids = {str(section.usage_key) for section in user_course_outline.sections}
