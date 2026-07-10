@@ -130,7 +130,7 @@ ${HTML(fragment.foot_html())}
       function dispatchResizeMessage(event) {
         // Note: event is actually an Array of MutationRecord objects when fired from the MutationObserver
         var isLoadEvent = event.type === 'load';
-        var newHeight = contentElement.offsetHeight;
+        var newHeight = document.body.scrollHeight;
         var newWidth = contentElement.offsetWidth;
         if (!isLoadEvent && newWidth === lastWidth && newHeight === lastHeight) {
             // Monitor when any anchor tag is clicked, it is checked to make sure
