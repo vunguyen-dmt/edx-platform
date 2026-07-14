@@ -118,39 +118,6 @@ EXPORT_IMPORT_COURSE_DIR = 'course'
 EXPORT_IMPORT_STATIC_DIR = 'static'
 
 
-def _build_cdn_fallback_sources(sources):
-    storage_sources = getattr(settings, 'GA_STORAGE_SOURCES', None)
-    if not storage_sources or not sources:
-        return sources
-
-    first_url = sources[0]
-    matched_cdn_base_url = None
-    for source_config in storage_sources:
-        if not source_config.get('is_active'):
-            continue
-        cdn_base_url = source_config.get('cdn_base_url', '').rstrip('/')
-        if cdn_base_url and first_url.startswith(cdn_base_url):
-            matched_cdn_base_url = cdn_base_url
-            break
-
-    if not matched_cdn_base_url:
-        return sources
-
-    relative_path = first_url[len(matched_cdn_base_url):]
-
-    fallback_urls = []
-    for source_config in storage_sources:
-        if not source_config.get('is_active'):
-            continue
-        cdn_base_url = source_config.get('cdn_base_url', '').rstrip('/')
-        if cdn_base_url:
-            fallback_urls.append(cdn_base_url + relative_path)
-
-    if not fallback_urls:
-        return sources
-
-    return fallback_urls + sources[1:]
-
 
 @XBlock.wants('settings', 'completion', 'i18n', 'request_cache')
 @XBlock.needs('mako', 'user')
@@ -343,14 +310,10 @@ class _BuiltInVideoBlock(
         except Exception:
             pass
         cdn_url = getattr(settings, 'VIDEO_CDN_URL', {}).get(user_location, default_cdn_url)
-
-        sources = _build_cdn_fallback_sources(sources)
-
         if cdn_url:
-            for index, source_url in enumerate(sources):
-                new_url = rewrite_video_url(cdn_url, source_url)
-                if new_url:
-                    sources[index] = new_url
+            if len(sources) > 0 and sources[0].startswith('https://d10g66pf9vjy7h.cloudfront.net'):
+                sources.append(sources[0])
+                sources[0] = rewrite_video_url(cdn_url, sources[0])
 
         # If we have an edx_video_id, we prefer its values over what we store
         # internally for download links (source, html5_sources) and the youtube
@@ -1241,7 +1204,19 @@ class _BuiltInVideoBlock(
 
         encoded_videos = {}
         val_video_data = {}
-        all_sources = _build_cdn_fallback_sources(self.html5_sources or [])
+        all_sources = self.html5_sources or []
+
+        default_cdn_url = getattr(settings, 'VIDEO_CDN_URL', {}).get('default')
+        user_location = 'VI'
+        try:
+            user_location = self.runtime.service(self, 'user').get_current_user().opt_attrs[ATTR_KEY_REQUEST_COUNTRY_CODE]
+        except Exception:
+            pass
+        cdn_url = getattr(settings, 'VIDEO_CDN_URL', {}).get(user_location, default_cdn_url)
+        if cdn_url:
+            if len(all_sources) > 0 and all_sources[0].startswith('https://d10g66pf9vjy7h.cloudfront.net'):
+                all_sources.append(all_sources[0])
+                all_sources[0] = rewrite_video_url(cdn_url, all_sources[0])
 
         # Check in VAL data first if edx_video_id exists
         if self.edx_video_id:
