@@ -365,9 +365,11 @@ class VerticalBlock(
             if child.location.block_type == 'problem':
                 problems.append(child)
             elif child.location.block_type in ('library_content', 'itembank') and child.has_children:
+                selected_ids = {tuple(sel) for sel in child.selected_children()}
                 problems.extend(
                     grandchild for grandchild in child.get_children()
                     if grandchild.location.block_type == 'problem'
+                    and (grandchild.location.block_type, grandchild.location.block_id) in selected_ids
                 )
             for problem in problems:
                 mc_total += 1
