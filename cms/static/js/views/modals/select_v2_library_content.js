@@ -9,6 +9,10 @@ define(['jquery', 'underscore', 'gettext', 'js/views/modals/base_modal'],
 function($, _, gettext, BaseModal) {
     'use strict';
 
+    // Only the most recently opened picker may receive the selection. When embedded in the authoring MFE this modal
+    // is never shown or hidden, so without this every earlier picker would also add the selection (in parallel).
+    var removeActivePickerListener = null;
+
     var SelectV2LibraryContent = BaseModal.extend({
         options: $.extend({}, BaseModal.prototype.options, {
             modalName: 'add-components-from-library',
@@ -43,8 +47,12 @@ function($, _, gettext, BaseModal) {
                     this.callback(this.selections);
                 }
             };
+            if (removeActivePickerListener) {
+                removeActivePickerListener();
+            }
             this.messageListener = window.addEventListener("message", handleMessage);
             this.cleanupListener = () => { window.removeEventListener("message", handleMessage) };
+            removeActivePickerListener = this.cleanupListener;
         },
 
         hide: function() {
