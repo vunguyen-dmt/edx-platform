@@ -657,6 +657,35 @@ function($, _, Backbone, gettext, BasePage,
                         });
                     }
                 };
+                // Rate limited (429) or Studio briefly unavailable (502/503/504): wait and retry, a few times.
+                // Retrying is safe: if the first attempt did add it, the server reports it as already in the bank.
+                const RETRYABLE_STATUSES = [429, 502, 503, 504];
+                const RETRY_DELAYS_MS = [1000, 2000, 4000];
+                const MAX_RETRY_AFTER_MS = 30000;
+                const postAddRequest = (addData, retryCount) => $.ajax({
+                    url: this.getURLRoot() + '/',
+                    type: 'POST',
+                    contentType: 'application/json; charset=utf-8',
+                    dataType: 'json',
+                    data: JSON.stringify(addData),
+                    // A failed component is counted and the others are still added, so don't show
+                    // Studio's error notification for each failure: the counts are reported instead.
+                    global: false,
+                }).then(null, (jqXHR) => {
+                    if (retryCount >= RETRY_DELAYS_MS.length || !RETRYABLE_STATUSES.includes(jqXHR.status)) {
+                        return $.Deferred().reject(jqXHR).promise();
+                    }
+                    // Wait as long as the server asks (Retry-After, in seconds), within reason.
+                    const retryAfterSeconds = parseInt(jqXHR.getResponseHeader('Retry-After'), 10);
+                    const delayMs = Number.isNaN(retryAfterSeconds)
+                        ? RETRY_DELAYS_MS[retryCount]
+                        : Math.min(retryAfterSeconds * 1000, MAX_RETRY_AFTER_MS);
+                    const retried = $.Deferred();
+                    setTimeout(() => {
+                        postAddRequest(addData, retryCount + 1).then(retried.resolve, retried.reject);
+                    }, delayMs);
+                    return retried.promise();
+                });
                 for (const { usageKey, blockType } of selectedBlocks) {
                     const addData = {
                         library_content_key: usageKey,
@@ -664,16 +693,7 @@ function($, _, Backbone, gettext, BasePage,
                         parent_locator: itemBankBlockId,
                     };
                     lastAdded = lastAdded.then(() => (
-                        $.ajax({
-                            url: this.getURLRoot() + '/',
-                            type: 'POST',
-                            contentType: 'application/json; charset=utf-8',
-                            dataType: 'json',
-                            data: JSON.stringify(addData),
-                            // A failed component is counted and the others are still added, so don't show
-                            // Studio's error notification for each failure: the counts are reported instead.
-                            global: false,
-                        }).then((addResult) => {
+                        postAddRequest(addData, 0).then((addResult) => {
                             if (addResult.alreadyExists) {
                                 // It is already shown in the bank, so don't render it again.
                                 skippedCount += 1;
