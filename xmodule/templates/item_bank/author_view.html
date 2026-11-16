@@ -23,11 +23,6 @@
                 {% endfilter %}
             </p>
         {% endif %}
-        <ol style="list-style: decimal; margin-left: 2em;">
-            {% for block in blocks %}
-                <li>{{ block.display_name }}</li>
-            {% endfor %}
-        </ol>
         <p style="color: var(--gray);">
             {% blocktrans trimmed asvar view_msg %}
             Press {link_start}View{link_end} to preview, sync/update, and/or remove the selected components.

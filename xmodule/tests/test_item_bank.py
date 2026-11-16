@@ -193,10 +193,8 @@ class TestItemBankForCms(ItemBankTestBase):
         self._bind_course_block(self.item_bank)
         rendered = self.item_bank.render(AUTHOR_VIEW, {})
         assert 'Learners will see 1 of the 4 selected components' in rendered.content
-        assert '<li>My Item 0</li>' in rendered.content
-        assert '<li>My Item 1</li>' in rendered.content
-        assert '<li>My Item 2</li>' in rendered.content
-        assert '<li>My Item 3</li>' in rendered.content
+        # Only the count is shown; the children are not listed.
+        assert 'My Item 0' not in rendered.content
 
 
 @skip_unless_lms

@@ -822,7 +822,5 @@ class TestLegacyLibraryContentBlockMigration(LegacyLibraryContentTest):
         rendered = self.lc_block.render(AUTHOR_VIEW, {})
         # content should be similar to ItemBankBlock
         assert 'Learners will see 1 of the 4 selected components' in rendered.content
-        assert '<li>html 1</li>' in rendered.content
-        assert '<li>html 2</li>' in rendered.content
-        assert '<li>html 3</li>' in rendered.content
-        assert '<li>html 4</li>' in rendered.content
+        # Only the count is shown; the children are not listed.
+        assert 'html 1' not in rendered.content

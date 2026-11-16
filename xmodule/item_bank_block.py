@@ -20,7 +20,6 @@ from xblock.core import XBlock
 from xblock.fields import Boolean, Integer, List, Scope, String
 from xblock.utils.resources import ResourceLoader
 
-from xmodule.block_metadata_utils import display_name_with_default
 from xmodule.mako_block import MakoTemplateBlockBase
 from xmodule.studio_editable import StudioEditableBlock
 from xmodule.util.builtin_assets import add_webpack_js_to_fragment
@@ -437,13 +436,10 @@ class ItemBankMixin(
         else:
             # We're just on the regular unit page, or we're on the "view" page but no children exist yet.
             # Show a summary message and instructions.
+            # Only the number of children is shown, so they are not loaded: a bank can have hundreds of them.
             summary_html = loader.render_django_template('templates/item_bank/author_view.html', {
                 # Due to template interpolation limitations, we have to pass some HTML for the link here:
                 "view_link": f'<a target="_top" href="/container/{self.usage_key}">',
-                "blocks": [
-                    {"display_name": display_name_with_default(child)}
-                    for child in self.get_children()
-                ],
                 "block_count": len(self.children),
                 "max_count": self.max_count,
             })
