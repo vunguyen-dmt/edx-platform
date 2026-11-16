@@ -642,8 +642,21 @@ function($, _, Backbone, gettext, BasePage,
                 // them one at a time:
 
                 let lastAdded = $.when();
-                // The server doesn't add a library item the problem bank already has; count those to tell the user.
-                let alreadyInBankCount = 0;
+                const totalCount = selectedBlocks.length;
+                let addedCount = 0;
+                // The server doesn't add a library item the problem bank already has; it reports it instead.
+                let skippedCount = 0;
+                let errorCount = 0;
+                // When embedded in the authoring MFE, its component picker stays open showing these counts,
+                // and only closes when we report that we finished.
+                const postAddingStatusToParent = (type) => {
+                    if (this.options.isIframeEmbed) {
+                        this.postMessageToParent({
+                            type,
+                            payload: {addedCount, skippedCount, errorCount, totalCount},
+                        });
+                    }
+                };
                 for (const { usageKey, blockType } of selectedBlocks) {
                     const addData = {
                         library_content_key: usageKey,
@@ -651,31 +664,65 @@ function($, _, Backbone, gettext, BasePage,
                         parent_locator: itemBankBlockId,
                     };
                     lastAdded = lastAdded.then(() => (
-                        $.postJSON(this.getURLRoot() + '/', addData, (addResult) => {
+                        $.ajax({
+                            url: this.getURLRoot() + '/',
+                            type: 'POST',
+                            contentType: 'application/json; charset=utf-8',
+                            dataType: 'json',
+                            data: JSON.stringify(addData),
+                            // A failed component is counted and the others are still added, so don't show
+                            // Studio's error notification for each failure: the counts are reported instead.
+                            global: false,
+                        }).then((addResult) => {
                             if (addResult.alreadyExists) {
                                 // It is already shown in the bank, so don't render it again.
-                                alreadyInBankCount += 1;
-                                return undefined;
+                                skippedCount += 1;
+                            } else {
+                                addedCount += 1;
+                                // It is saved on the server either way, so a rendering error must not stop the others
+                                // (with this jQuery version an exception here would leave the chain hanging).
+                                try {
+                                    doneAddingBlock(addResult);
+                                } catch (renderError) {
+                                    console.error('Could not render the added component', renderError);
+                                }
                             }
-                            return doneAddingBlock(addResult);
-                        })
+                        }, () => {
+                            errorCount += 1;
+                            return $.when(); // Carry on with the next component.
+                        }).always(() => { postAddingStatusToParent('addComponentsToBankProgress'); })
                     ));
                 }
                 // Now we actually add the block:
                 ViewUtils.runOperationShowingMessage(gettext('Adding'), () => {
                     return lastAdded.done(() => {
+                        // Report first, so that the MFE's picker is never left waiting if refreshing fails.
+                        postAddingStatusToParent('addComponentsToBankFinished');
                         doneAddingAllBlocks();
-                        if (alreadyInBankCount > 0) {
+                        // Embedded in the MFE, its picker shows the result; otherwise tell the user here.
+                        if (!this.options.isIframeEmbed && (skippedCount > 0 || errorCount > 0)) {
+                            const resultMessages = [];
+                            if (skippedCount > 0) {
+                                resultMessages.push(StringUtils.interpolate(ngettext(
+                                    // Translators: 'count' is the number of selected components that were skipped.
+                                    '{count} selected component is already in this problem bank and was skipped.',
+                                    '{count} selected components are already in this problem bank and were skipped.',
+                                    skippedCount
+                                ), {count: skippedCount}));
+                            }
+                            if (errorCount > 0) {
+                                resultMessages.push(StringUtils.interpolate(ngettext(
+                                    // Translators: 'count' is the number of selected components that failed to be added.
+                                    '{count} selected component could not be added because of an error.',
+                                    '{count} selected components could not be added because of an error.',
+                                    errorCount
+                                ), {count: errorCount}));
+                            }
                             // Delay to avoid conflict with the "Adding" notification.
                             setTimeout(() => {
                                 new PromptView.Warning({
                                     title: gettext('Some components were not added'),
-                                    message: StringUtils.interpolate(ngettext(
-                                        // Translators: 'count' is the number of selected components that were skipped.
-                                        '{count} selected component is already in this problem bank and was skipped.',
-                                        '{count} selected components are already in this problem bank and were skipped.',
-                                        alreadyInBankCount
-                                    ), {count: alreadyInBankCount}),
+                                    message: resultMessages.join(' '),
                                     actions: {primary: {text: gettext('OK'), click: (prompt) => { prompt.hide(); }}},
                                 }).show();
                             }, 1250);
