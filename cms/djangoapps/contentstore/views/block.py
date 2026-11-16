@@ -140,6 +140,9 @@ def xblock_handler(request, usage_key_string=None):
                      fields except parent_locator)
                 :library_content_key: the key of the library content to add. (Incompatible with
                      all other fields except parent_locator)
+                     If the parent is a problem bank (itembank) that already has a block linked to this library
+                     content, no block is created: the existing block's locator is returned, with
+                     "alreadyExists": true.
               The locator (unicode representation of a UsageKey) for the created xblock (minus children) is returned.
     """
     return handle_xblock(request, usage_key_string)

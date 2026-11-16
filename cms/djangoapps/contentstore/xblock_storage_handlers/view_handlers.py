@@ -685,6 +685,21 @@ def _create_block(request):
                 status=400,
             )
 
+    # A problem bank must not contain the same library item twice (it would skew the random selection),
+    # so adding an item it already has returns the existing block instead of creating a copy.
+    if upstream_ref_to_add := request.json.get("library_content_key"):
+        parent_block = modulestore().get_item(usage_key)
+        if parent_block.category == "itembank":
+            for existing_child in parent_block.get_children():
+                if existing_child.upstream == upstream_ref_to_add:
+                    return JsonResponse({
+                        "locator": str(existing_child.location),
+                        "courseKey": str(existing_child.location.course_key),
+                        "upstreamRef": upstream_ref_to_add,
+                        "parent_locator": parent_locator,
+                        "alreadyExists": True,
+                    })
+
     created_block = create_xblock(
         parent_locator=parent_locator,
         user=request.user,

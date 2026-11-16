@@ -178,6 +178,56 @@ class CourseToLibraryTestCase(ContentLibrariesRestApiTest, ImmediateOnCommitMixi
 
     ####################################################################################################################
 
+    def test_add_to_problem_bank_skips_item_already_in_bank(self):
+        """
+        Adding a library item that a problem bank already has returns the existing block
+        instead of creating a copy; other items are still added.
+        """
+        problem_bank = BlockFactory.create(category='itembank', parent=self.course_unit)
+        problem_bank_key = str(problem_bank.usage_key)
+
+        first_add = self._create_block_from_upstream(
+            block_category="problem",
+            parent_usage_key=problem_bank_key,
+            upstream_key=self.upstream_problem1["id"],
+        )
+        repeated_add = self._create_block_from_upstream(
+            block_category="problem",
+            parent_usage_key=problem_bank_key,
+            upstream_key=self.upstream_problem1["id"],
+        )
+        other_add = self._create_block_from_upstream(
+            block_category="problem",
+            parent_usage_key=problem_bank_key,
+            upstream_key=self.upstream_problem2["id"],
+        )
+
+        assert "alreadyExists" not in first_add
+        assert repeated_add["alreadyExists"] is True
+        assert repeated_add["locator"] == first_add["locator"]
+        assert "alreadyExists" not in other_add
+        assert self._get_course_block_children(problem_bank_key) == [first_add["locator"], other_add["locator"]]
+
+    def test_add_same_item_twice_to_unit_creates_two_blocks(self):
+        """
+        Outside of a problem bank, the same library item can still be added more than once.
+        """
+        unit_key = str(self.course_unit.usage_key)
+        first_add = self._create_block_from_upstream(
+            block_category="problem",
+            parent_usage_key=unit_key,
+            upstream_key=self.upstream_problem1["id"],
+        )
+        second_add = self._create_block_from_upstream(
+            block_category="problem",
+            parent_usage_key=unit_key,
+            upstream_key=self.upstream_problem1["id"],
+        )
+
+        assert "alreadyExists" not in second_add
+        assert second_add["locator"] != first_add["locator"]
+        assert self._get_course_block_children(unit_key) == [first_add["locator"], second_add["locator"]]
+
     def test_problem_sync(self):
         """
         Test that we can sync a problem from a library into a course.

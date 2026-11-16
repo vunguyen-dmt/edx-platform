@@ -9,7 +9,7 @@ define(['jquery', 'underscore', 'backbone', 'gettext', 'js/views/pages/base_page
     'js/views/pages/container_subviews', 'js/views/unit_outline', 'js/views/utils/xblock_utils',
     'common/js/components/views/feedback_notification', 'common/js/components/views/feedback_prompt',
     'js/views/utils/tagging_drawer_utils', 'js/utils/module', 'js/views/modals/preview_v2_library_changes',
-    'js/views/modals/select_v2_library_content'
+    'js/views/modals/select_v2_library_content', 'edx-ui-toolkit/js/utils/string-utils'
 ],
 function($, _, Backbone, gettext, BasePage,
     ViewUtils, ContainerView, XBlockView,
@@ -17,7 +17,7 @@ function($, _, Backbone, gettext, BasePage,
     XBlockInfo, XBlockStringFieldEditor, XBlockAccessEditor,
     ContainerSubviews, UnitOutlineView, XBlockUtils,
     NotificationView, PromptView, TaggingDrawerUtils, ModuleUtils,
-    PreviewLibraryChangesModal, SelectV2LibraryContent) {
+    PreviewLibraryChangesModal, SelectV2LibraryContent, StringUtils) {
     'use strict';
 
     var XBlockContainerPage = BasePage.extend({
@@ -642,6 +642,8 @@ function($, _, Backbone, gettext, BasePage,
                 // them one at a time:
 
                 let lastAdded = $.when();
+                // The server doesn't add a library item the problem bank already has; count those to tell the user.
+                let alreadyInBankCount = 0;
                 for (const { usageKey, blockType } of selectedBlocks) {
                     const addData = {
                         library_content_key: usageKey,
@@ -649,12 +651,36 @@ function($, _, Backbone, gettext, BasePage,
                         parent_locator: itemBankBlockId,
                     };
                     lastAdded = lastAdded.then(() => (
-                        $.postJSON(this.getURLRoot() + '/', addData, doneAddingBlock)
+                        $.postJSON(this.getURLRoot() + '/', addData, (addResult) => {
+                            if (addResult.alreadyExists) {
+                                // It is already shown in the bank, so don't render it again.
+                                alreadyInBankCount += 1;
+                                return undefined;
+                            }
+                            return doneAddingBlock(addResult);
+                        })
                     ));
                 }
                 // Now we actually add the block:
                 ViewUtils.runOperationShowingMessage(gettext('Adding'), () => {
-                    return lastAdded.done(() => { doneAddingAllBlocks() });
+                    return lastAdded.done(() => {
+                        doneAddingAllBlocks();
+                        if (alreadyInBankCount > 0) {
+                            // Delay to avoid conflict with the "Adding" notification.
+                            setTimeout(() => {
+                                new PromptView.Warning({
+                                    title: gettext('Some components were not added'),
+                                    message: StringUtils.interpolate(ngettext(
+                                        // Translators: 'count' is the number of selected components that were skipped.
+                                        '{count} selected component is already in this problem bank and was skipped.',
+                                        '{count} selected components are already in this problem bank and were skipped.',
+                                        alreadyInBankCount
+                                    ), {count: alreadyInBankCount}),
+                                    actions: {primary: {text: gettext('OK'), click: (prompt) => { prompt.hide(); }}},
+                                }).show();
+                            }, 1250);
+                        }
+                    });
                 });
             }, this.options.isIframeEmbed);
         },
