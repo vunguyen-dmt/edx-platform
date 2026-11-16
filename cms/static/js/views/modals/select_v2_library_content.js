@@ -34,6 +34,14 @@ function($, _, gettext, BaseModal) {
             this.selections = [];
             // Add event listen to close picker when the iframe tells us to
             const handleMessage = (event) => {
+                const isPickerMessage = ['pickerSelectionChanged', 'addSelectedComponentsToBank']
+                    .includes(event.data?.type);
+                // Only the authoring MFE (the picker) may change the selection or add components; any other frame
+                // on this page (e.g. an iframe inside a component) must not.
+                if (isPickerMessage && event.origin !== this.pickerOrigin) {
+                    console.warn('Ignored component picker message from an unexpected origin:', event.origin);
+                    return;
+                }
                 if (event.data?.type === 'pickerSelectionChanged') {
                     this.selections = event.data.selections;
                     if (this.selections.length > 0) {
@@ -87,6 +95,8 @@ function($, _, gettext, BaseModal) {
          */
         showComponentPicker: function(contentPickerUrl, callback, isIframeEmbed) {
             this.contentPickerUrl = contentPickerUrl;
+            // The picker is served by the authoring MFE; its messages must come from there.
+            this.pickerOrigin = new URL(contentPickerUrl, window.location.href).origin;
             this.callback = callback;
             if (isIframeEmbed) {
                 window.parent.postMessage(
