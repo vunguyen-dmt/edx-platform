@@ -637,6 +637,13 @@ def get_video_transcript_content(edx_video_id, language_code):
     if edxval_api and edx_video_id:
         try:
             transcript = edxval_api.get_video_transcript_data(edx_video_id, language_code)
+        except FileNotFoundError:
+            # The edx-val transcript row exists but its file is missing from storage.
+            # Treat it as no transcript, so Studio can still open the video and replace it.
+            # edx-val has already logged the traceback.
+            log.warning(
+                f"Transcript file missing in storage for edx-val id: {edx_video_id}: language code {language_code}"
+            )
         except ValueError:
             log.exception(
                 f"Error getting transcript from edx-val id: {edx_video_id}: language code {language_code}"

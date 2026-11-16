@@ -141,7 +141,15 @@ def handle_transcript_download(request):
 
     edx_video_id = request.GET['edx_video_id']
     language_code = request.GET['language_code']
-    transcript = get_video_transcript_data(video_id=edx_video_id, language_code=language_code)
+    try:
+        transcript = get_video_transcript_data(video_id=edx_video_id, language_code=language_code)
+    except FileNotFoundError:
+        # The edx-val transcript row exists but its file is missing from storage.
+        # edx-val has already logged the traceback.
+        LOGGER.warning(
+            f"Transcript file missing in storage for edx-val id: {edx_video_id}: language code {language_code}"
+        )
+        transcript = None
     if transcript:
         name_and_extension = os.path.splitext(transcript['file_name'])
         basename, file_format = name_and_extension[0], name_and_extension[1][1:]
